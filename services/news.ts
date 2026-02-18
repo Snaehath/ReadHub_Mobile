@@ -16,8 +16,10 @@ export async function getNewsPaginated(
       params.append("category", category);
     }
 
-    const baseUrl = "https://readhub-backend.onrender.com/api";
-    // using the render endpoint
+    const baseUrl =
+      process.env.EXPO_PUBLIC_API_BASE_URL ||
+      "https://readhub-backend.onrender.com/api";
+    // Using environment variable with fallback to production URL
 
     const endpoint =
       country === "in"
