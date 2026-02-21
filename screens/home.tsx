@@ -8,16 +8,29 @@ import {
   ActivityIndicator,
   Image,
   RefreshControl,
-  SafeAreaView,
+  Alert,
+  Modal,
+  Pressable,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../navigation/rootNavigator";
 import { getNewsPaginated } from "../services/news";
 import { newsCategories } from "../constants/categories";
 import { NewsArticle } from "../types/news";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuthStore } from "../store/useAuthStore";
 
 const HomeScreen = () => {
+  // hooks
   const insets = useSafeAreaInsets();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+  // states
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
   const [news, setNews] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -25,6 +38,9 @@ const HomeScreen = () => {
   const [page, setPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [hasMore, setHasMore] = useState(true);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // actions
 
   const fetchNews = useCallback(
     async (pageNum: number, category: string, shouldRefresh = false) => {
@@ -77,18 +93,123 @@ const HomeScreen = () => {
     }
   };
 
+  // helpers
+  const getInitials = (name: string) => {
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  const handleLogout = () => {
+    setIsDrawerOpen(false); // close drawer
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: () => {
+          logout();
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "Login" as any }],
+          });
+        },
+      },
+    ]);
+  };
+
+  // render helpers
   const renderHeader = () => (
     <View>
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Good Morning,</Text>
-          <Text style={styles.userName}>Snaehath P</Text>
+          <Text style={styles.userName}>{user?.username || "Guest"}</Text>
         </View>
-        <TouchableOpacity style={styles.profileButton}>
-          <Feather name="bell" size={24} color="#1f2937" />
-          <View style={styles.notificationBadge} />
+        <TouchableOpacity
+          style={styles.profileButton}
+          onPress={() => setIsDrawerOpen(true)}
+        >
+          {user?.avatar ? (
+            <Image
+              source={{ uri: user.avatar }}
+              style={styles.avatarImageSmall}
+            />
+          ) : (
+            <Text style={styles.initialsText}>
+              {getInitials(user?.username || "GU")}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
+
+      <Modal
+        visible={isDrawerOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsDrawerOpen(false)}
+      >
+        <Pressable
+          style={[styles.drawerBackdrop, { backgroundColor: "transparent" }]}
+          onPress={() => setIsDrawerOpen(false)}
+        />
+        <View style={styles.drawerContent}>
+          <View style={styles.drawerHandle} />
+
+          <View style={styles.drawerHeader}>
+            <View style={styles.drawerAvatarContainer}>
+              {user?.avatar ? (
+                <Image
+                  source={{ uri: user.avatar }}
+                  style={styles.drawerAvatar}
+                />
+              ) : (
+                <Text style={styles.drawerInitials}>
+                  {getInitials(user?.username || "GU")}
+                </Text>
+              )}
+            </View>
+            <View style={styles.drawerUserInfo}>
+              <Text style={styles.drawerUsername}>
+                {user?.username || "Guest User"}
+              </Text>
+              <Text style={styles.drawerEmail}>
+                {user?.email || "guest@readhub.com"}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.drawerDivider} />
+
+          <TouchableOpacity
+            style={styles.drawerItem}
+            onPress={() => setIsDrawerOpen(false)}
+          >
+            <Feather name="user" size={20} color="#4b5563" />
+            <Text style={styles.drawerItemText}>Profile Settings</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.drawerItem}
+            onPress={() => setIsDrawerOpen(false)}
+          >
+            <Feather name="bookmark" size={20} color="#4b5563" />
+            <Text style={styles.drawerItemText}>Saved Articles</Text>
+          </TouchableOpacity>
+
+          <View style={styles.drawerDivider} />
+
+          <TouchableOpacity
+            style={[styles.drawerItem, styles.logoutItem]}
+            onPress={handleLogout}
+          >
+            <Feather name="log-out" size={20} color="#ef4444" />
+            <Text style={[styles.drawerItemText, styles.logoutItemText]}>
+              Logout
+            </Text>
+          </TouchableOpacity>
+
+          <View style={{ height: 40 }} />
+        </View>
+      </Modal>
 
       <TouchableOpacity style={styles.searchContainer}>
         <Feather name="search" size={20} color="#9ca3af" />
@@ -171,12 +292,17 @@ const HomeScreen = () => {
       </View>
     </TouchableOpacity>
   );
-
+  // render
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      {isDrawerOpen && (
+        <Pressable
+          style={styles.staticBackdrop}
+          onPress={() => setIsDrawerOpen(false)}
+        />
+      )}
       {loading && page === 1 ? (
         <View style={styles.centerLoader}>
-          {/* Render header even while loading to keep UI stable, or just full screen loader */}
           {renderHeader()}
           <ActivityIndicator
             size="large"
@@ -209,6 +335,7 @@ const HomeScreen = () => {
 
 export default HomeScreen;
 
+// styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -238,7 +365,7 @@ const styles = StyleSheet.create({
   profileButton: {
     width: 45,
     height: 45,
-    borderRadius: 12,
+    borderRadius: 22.5,
     backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
@@ -371,5 +498,105 @@ const styles = StyleSheet.create({
   },
   centerLoader: {
     flex: 1,
+  },
+  avatarImageSmall: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 22.5,
+  },
+  initialsText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#1f2937",
+  },
+  drawerBackdrop: {
+    flex: 1,
+  },
+  staticBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    zIndex: 10,
+  },
+  drawerContent: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    position: "absolute",
+    bottom: 0,
+    width: "100%",
+    elevation: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+  },
+  drawerHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: "#e5e7eb",
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: 20,
+  },
+  drawerHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  drawerAvatarContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#f3f4f6",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 15,
+  },
+  drawerAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  drawerInitials: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#1f2937",
+  },
+  drawerUserInfo: {
+    flex: 1,
+  },
+  drawerUsername: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1f2937",
+  },
+  drawerEmail: {
+    fontSize: 14,
+    color: "#6b7280",
+    marginTop: 2,
+  },
+  drawerDivider: {
+    height: 1,
+    backgroundColor: "#f3f4f6",
+    marginVertical: 10,
+  },
+  drawerItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+  },
+  drawerItemText: {
+    marginLeft: 12,
+    fontSize: 16,
+    color: "#1f2937",
+    fontWeight: "500",
+  },
+  logoutItem: {
+    marginTop: 5,
+  },
+  logoutItemText: {
+    color: "#ef4444",
   },
 });

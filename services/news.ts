@@ -36,7 +36,7 @@ export async function getNewsPaginated(
       try {
         const errorBody = await res.text();
         errorMessage += `: ${errorBody}`;
-      } catch (e) {
+      } catch {
         // ignore
       }
       throw new Error(errorMessage);

@@ -16,11 +16,14 @@ import { RootStackParamList } from "../navigation/rootNavigator";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { login } from "../services/userService";
+import { useAuthStore } from "../store/useAuthStore";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const LoginScreen = () => {
   const navigation = useNavigation<NavigationProp>();
+  const setUser = useAuthStore((state) => state.setUser);
+  const setToken = useAuthStore((state) => state.setToken);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,6 +39,8 @@ const LoginScreen = () => {
     setLoading(true);
     try {
       const data = await login(email, password);
+      setUser(data.user);
+      setToken(data.token);
       navigation.navigate("Home");
     } catch (error: any) {
       Alert.alert("Login Failed", error.message || "An unknown error occurred");
