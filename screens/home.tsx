@@ -9,7 +9,6 @@ import {
   Image,
   RefreshControl,
   Alert,
-  Modal,
   Pressable,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
@@ -21,6 +20,7 @@ import { newsCategories } from "../constants/categories";
 import { NewsArticle } from "../types/news";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthStore } from "../store/useAuthStore";
+import UserDrawer from "../components/UserDrawer";
 
 const HomeScreen = () => {
   // hooks
@@ -37,16 +37,22 @@ const HomeScreen = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedCountry, setSelectedCountry] = useState("us");
   const [hasMore, setHasMore] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // actions
 
   const fetchNews = useCallback(
-    async (pageNum: number, category: string, shouldRefresh = false) => {
+    async (
+      pageNum: number,
+      category: string,
+      country: string,
+      shouldRefresh = false,
+    ) => {
       try {
         if (pageNum === 1) setLoading(true);
-        const data = await getNewsPaginated(pageNum, 12, category);
+        const data = await getNewsPaginated(pageNum, 12, category, country);
 
         if (shouldRefresh || pageNum === 1) {
           setNews(data.news);
@@ -67,13 +73,13 @@ const HomeScreen = () => {
   );
 
   useEffect(() => {
-    fetchNews(1, selectedCategory);
-  }, [selectedCategory, fetchNews]);
+    fetchNews(1, selectedCategory, selectedCountry);
+  }, [selectedCategory, selectedCountry, fetchNews]);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setPage(1);
-    fetchNews(1, selectedCategory, true);
+    fetchNews(1, selectedCategory, selectedCountry, true);
   };
 
   const handleLoadMore = () => {
@@ -81,13 +87,21 @@ const HomeScreen = () => {
       setLoadingMore(true);
       const nextPage = page + 1;
       setPage(nextPage);
-      fetchNews(nextPage, selectedCategory);
+      fetchNews(nextPage, selectedCategory, selectedCountry);
     }
   };
 
   const handleCategoryPress = (categoryId: string) => {
     if (selectedCategory !== categoryId) {
       setSelectedCategory(categoryId);
+      setPage(1);
+      setNews([]);
+    }
+  };
+
+  const handleCountryPress = (countryId: string) => {
+    if (selectedCountry !== countryId) {
+      setSelectedCountry(countryId);
       setPage(1);
       setNews([]);
     }
@@ -141,75 +155,13 @@ const HomeScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <Modal
-        visible={isDrawerOpen}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setIsDrawerOpen(false)}
-      >
-        <Pressable
-          style={[styles.drawerBackdrop, { backgroundColor: "transparent" }]}
-          onPress={() => setIsDrawerOpen(false)}
-        />
-        <View style={styles.drawerContent}>
-          <View style={styles.drawerHandle} />
-
-          <View style={styles.drawerHeader}>
-            <View style={styles.drawerAvatarContainer}>
-              {user?.avatar ? (
-                <Image
-                  source={{ uri: user.avatar }}
-                  style={styles.drawerAvatar}
-                />
-              ) : (
-                <Text style={styles.drawerInitials}>
-                  {getInitials(user?.username || "GU")}
-                </Text>
-              )}
-            </View>
-            <View style={styles.drawerUserInfo}>
-              <Text style={styles.drawerUsername}>
-                {user?.username || "Guest User"}
-              </Text>
-              <Text style={styles.drawerEmail}>
-                {user?.email || "guest@readhub.com"}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.drawerDivider} />
-
-          <TouchableOpacity
-            style={styles.drawerItem}
-            onPress={() => setIsDrawerOpen(false)}
-          >
-            <Feather name="user" size={20} color="#4b5563" />
-            <Text style={styles.drawerItemText}>Profile Settings</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.drawerItem}
-            onPress={() => setIsDrawerOpen(false)}
-          >
-            <Feather name="bookmark" size={20} color="#4b5563" />
-            <Text style={styles.drawerItemText}>Saved Articles</Text>
-          </TouchableOpacity>
-
-          <View style={styles.drawerDivider} />
-
-          <TouchableOpacity
-            style={[styles.drawerItem, styles.logoutItem]}
-            onPress={handleLogout}
-          >
-            <Feather name="log-out" size={20} color="#ef4444" />
-            <Text style={[styles.drawerItemText, styles.logoutItemText]}>
-              Logout
-            </Text>
-          </TouchableOpacity>
-
-          <View style={{ height: 40 }} />
-        </View>
-      </Modal>
+      <UserDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        user={user}
+        onLogout={handleLogout}
+        getInitials={getInitials}
+      />
 
       <TouchableOpacity style={styles.searchContainer}>
         <Feather name="search" size={20} color="#9ca3af" />
@@ -245,9 +197,43 @@ const HomeScreen = () => {
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>
           {selectedCategory === "all"
-            ? "Featured News"
-            : `${newsCategories.find((c) => c.id === selectedCategory)?.name} News`}
+            ? `${selectedCountry === "in" ? "India" : "US"} Featured News`
+            : `${selectedCountry === "in" ? "India" : "US"} ${newsCategories.find((c) => c.id === selectedCategory)?.name} News`}
         </Text>
+        <View style={styles.countrySwitcher}>
+          <TouchableOpacity
+            style={[
+              styles.countryItem,
+              selectedCountry === "us" && styles.countryItemActive,
+            ]}
+            onPress={() => handleCountryPress("us")}
+          >
+            <Text
+              style={[
+                styles.countryText,
+                selectedCountry === "us" && styles.countryTextActive,
+              ]}
+            >
+              🇺🇸 US
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.countryItem,
+              selectedCountry === "in" && styles.countryItemActive,
+            ]}
+            onPress={() => handleCountryPress("in")}
+          >
+            <Text
+              style={[
+                styles.countryText,
+                selectedCountry === "in" && styles.countryTextActive,
+              ]}
+            >
+              🇮🇳 IN
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -517,86 +503,31 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     zIndex: 10,
   },
-  drawerContent: {
+  countrySwitcher: {
+    flexDirection: "row",
+    backgroundColor: "#f3f4f6",
+    borderRadius: 10,
+    padding: 4,
+  },
+  countryItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  countryItemActive: {
     backgroundColor: "#fff",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    position: "absolute",
-    bottom: 0,
-    width: "100%",
-    elevation: 20,
+    elevation: 2,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: -4 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 10,
+    shadowRadius: 1,
   },
-  drawerHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: "#e5e7eb",
-    borderRadius: 2,
-    alignSelf: "center",
-    marginBottom: 20,
-  },
-  drawerHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  drawerAvatarContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#f3f4f6",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 15,
-  },
-  drawerAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-  },
-  drawerInitials: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#1f2937",
-  },
-  drawerUserInfo: {
-    flex: 1,
-  },
-  drawerUsername: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#1f2937",
-  },
-  drawerEmail: {
-    fontSize: 14,
+  countryText: {
+    fontSize: 12,
+    fontWeight: "600",
     color: "#6b7280",
-    marginTop: 2,
   },
-  drawerDivider: {
-    height: 1,
-    backgroundColor: "#f3f4f6",
-    marginVertical: 10,
-  },
-  drawerItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 14,
-  },
-  drawerItemText: {
-    marginLeft: 12,
-    fontSize: 16,
+  countryTextActive: {
     color: "#1f2937",
-    fontWeight: "500",
-  },
-  logoutItem: {
-    marginTop: 5,
-  },
-  logoutItemText: {
-    color: "#ef4444",
   },
 });

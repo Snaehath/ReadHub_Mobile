@@ -12,6 +12,7 @@ ReadHub Mobile is designed to provide a premium news reading experience. It inte
 - **Navigation**: [React Navigation](https://reactnavigation.org/) (Native Stack)
 - **Icons**: Expo Vector Icons (Feather)
 - **Language**: TypeScript
+- **State Management**: [Zustand](https://github.com/pmndrs/zustand)
 - **Styling**: Native StyleSheet with a focus on premium aesthetics.
 
 ## 📂 Project Structure
@@ -22,6 +23,8 @@ readhub-app/
 ├── constants/          # Application constants
 │   ├── categories.ts   # News categories definition
 │   └── user.ts         # User-related constants (e.g., Avatar options)
+├── components/         # Reusable UI components
+│   └── UserDrawer.tsx  # Shadcn-inspired bottom drawer
 ├── navigation/         # Navigation configuration
 │   └── rootNavigator.tsx# Main Stack Navigator
 ├── screens/            # Application screens
@@ -31,6 +34,8 @@ readhub-app/
 ├── services/           # API service layer
 │   ├── news.ts         # Paginated news fetching logic
 │   └── userService.ts  # Login and Registration API calls
+├── store/              # Global state management
+│   └── useAuthStore.ts # Zustand store for authentication
 ├── types/              # TypeScript interfaces/types
 │   ├── news.ts         # News-related data structures
 │   └── user.ts         # User/Auth-related data structures
@@ -51,9 +56,13 @@ readhub-app/
 - **Efficient Lists**: Uses `FlatList` for high-performance rendering.
 - **Pagination**: Implemented **Infinite Scrolling** (loads more news as you scroll).
 - **Category Filtering**: Horizontal scrolling categories to filter news by topic (Tech, Business, Sports, etc.).
+- **Country Switcher**: Toggle between **US** and **IN** (India) news sources seamlessly.
 - **Pull-to-Refresh**: Seamlessly reload the latest news.
 
-### 3. **Infrastructure**
+### 3. **UI/UX & Infrastructure**
+
+- **Shadcn-inspired Drawer**: Reusable bottom drawer for user profile and logout actions.
+- **State Management**: Zustand-powered auth state for persistence and accessibility.
 
 - **Environment Variables**: Integrated `expo-constants` to handle different base URLs (Production vs. Local Development).
 - **Theming**: Premium UI with glassmorphism touches, clean typography, and consistent spacing.
