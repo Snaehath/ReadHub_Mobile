@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthStore } from "../store/useAuthStore";
 import UserDrawer from "../components/UserDrawer";
 import NewsFeed from "../components/NewsFeed";
+import StoriesFeed from "../components/StoriesFeed";
 
 const HomeScreen = () => {
   // hooks
@@ -26,6 +27,7 @@ const HomeScreen = () => {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"news" | "stories">("news");
 
   // helpers
   const getInitials = (name: string) => {
@@ -92,7 +94,39 @@ const HomeScreen = () => {
         getInitials={getInitials}
       />
 
-      <NewsFeed />
+      <View style={styles.tabSwitcher}>
+        <TouchableOpacity
+          style={[styles.tabItem, activeTab === "news" && styles.activeTabItem]}
+          onPress={() => setActiveTab("news")}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "news" && styles.activeTabText,
+            ]}
+          >
+            News
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.tabItem,
+            activeTab === "stories" && styles.activeTabItem,
+          ]}
+          onPress={() => setActiveTab("stories")}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "stories" && styles.activeTabText,
+            ]}
+          >
+            AI Stories
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {activeTab === "news" ? <NewsFeed /> : <StoriesFeed />}
     </View>
   );
 };
@@ -149,6 +183,36 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     zIndex: 10,
+  },
+  tabSwitcher: {
+    flexDirection: "row",
+    backgroundColor: "#f3f4f6",
+    borderRadius: 12,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    padding: 4,
+  },
+  tabItem: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: "center",
+    borderRadius: 8,
+  },
+  activeTabItem: {
+    backgroundColor: "#fff",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#6b7280",
+  },
+  activeTabText: {
+    color: "#1f2937",
   },
 });
 
