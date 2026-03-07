@@ -24,20 +24,25 @@ readhub-app/
 │   ├── categories.ts   # News categories definition
 │   └── user.ts         # User-related constants (e.g., Avatar options)
 ├── components/         # Reusable UI components
-│   └── UserDrawer.tsx  # Shadcn-inspired bottom drawer
+│   ├── UserDrawer.tsx  # Shadcn-inspired bottom drawer
+│   ├── NewsFeed.tsx    # News timeline and filters
+│   └── StoriesFeed.tsx # Endless list of AI-generated stories
 ├── navigation/         # Navigation configuration
 │   └── rootNavigator.tsx# Main Stack Navigator
 ├── screens/            # Application screens
-│   ├── home.tsx        # News feed with pagination and categories
+│   ├── home.tsx        # News & Stories tabed home screen
 │   ├── login.tsx       # User login with keyboard handling
-│   └── register.tsx    # User registration with avatar picker
+│   ├── register.tsx    # User registration with avatar picker
+│   └── storyDetail.tsx # Detailed viewing of AI stories
 ├── services/           # API service layer
 │   ├── news.ts         # Paginated news fetching logic
-│   └── userService.ts  # Login and Registration API calls
+│   ├── userService.ts  # Login and Registration API calls
+│   └── storyService.ts # Story fetching and endpoint integration
 ├── store/              # Global state management
 │   └── useAuthStore.ts # Zustand store for authentication
 ├── types/              # TypeScript interfaces/types
 │   ├── news.ts         # News-related data structures
+│   ├── story.ts        # AI Story schema mappings
 │   └── user.ts         # User/Auth-related data structures
 └── .env                # Environment variables (GitIgnored)
 ```
@@ -59,7 +64,13 @@ readhub-app/
 - **Country Switcher**: Toggle between **US** and **IN** (India) news sources seamlessly.
 - **Pull-to-Refresh**: Seamlessly reload the latest news.
 
-### 3. **UI/UX & Infrastructure**
+### 3. **AI Story Integration**
+
+- **Stories Feed**: A dedicated tab to view infinite worlds created globally by AI constraints. Fetches ongoing global stories with image covers.
+- **Robust Integration**: Fallback image loading synced mechanically with the Next.js `readhub_frontend` to handle asset availability.
+- **Story Detailed View**: Fully styled markdown-like view showing expansive details, characters, reading chapters with interactive expanding, and AI-generated review ratings.
+
+### 4. **UI/UX & Infrastructure**
 
 - **Shadcn-inspired Drawer**: Reusable bottom drawer for user profile and logout actions.
 - **State Management**: Zustand-powered auth state for persistence and accessibility.
@@ -116,4 +127,4 @@ Maintain code standards and type safety with these commands:
 
 ---
 
-_Last updated: February 21, 2026_
+_Last updated: March 7, 2026_
