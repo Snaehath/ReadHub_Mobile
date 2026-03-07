@@ -7,11 +7,12 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   SafeAreaView,
+  Image,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { RootStackParamList } from "../navigation/rootNavigator";
-import { getStoryById } from "../services/storyService";
+import { getStoryById, getStoryCoverUrl } from "../services/storyService";
 import { DetailedStory, Chapter } from "../types/story";
 
 type StoryDetailRouteProp = RouteProp<RootStackParamList, "StoryDetail">;
@@ -24,6 +25,7 @@ const StoryDetailScreen = () => {
   const [story, setStory] = useState<DetailedStory | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedChapter, setExpandedChapter] = useState<number | null>(0);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     const fetchStoryDetail = async () => {
@@ -75,15 +77,25 @@ const StoryDetailScreen = () => {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {!imageError ? (
+          <Image
+            source={{ uri: getStoryCoverUrl(story.id) }}
+            style={styles.coverImage}
+            resizeMode="cover"
+            onError={() => setImageError(true)}
+          />
+        ) : null}
         <View style={styles.storyInfo}>
           <View style={styles.badgeRow}>
             <View style={styles.genreBadge}>
-              <Text style={styles.genreText}>{story.genre.toUpperCase()}</Text>
+              <Text style={styles.genreText} numberOfLines={1}>
+                {story.genre.toUpperCase()}
+              </Text>
             </View>
             <View style={styles.ratingContainer}>
               <Feather name="star" size={14} color="#f59e0b" />
               <Text style={styles.ratingText}>
-                {(story.rating || 0).toFixed(1)}
+                {(story.averageRating || 0).toFixed(1)}
               </Text>
             </View>
           </View>
@@ -92,10 +104,14 @@ const StoryDetailScreen = () => {
           <Text style={styles.author}>by {story.authorName}</Text>
           <Text style={styles.subject}>{story.subject}</Text>
 
-          {story.review && (
+          {story.reviews && story.reviews.length > 0 && (
             <View style={styles.reviewContainer}>
-              <Text style={styles.reviewLabel}>AI Review:</Text>
-              <Text style={styles.reviewText}>{story.review}</Text>
+              <Text style={styles.reviewLabel}>Reviews:</Text>
+              {story.reviews.map((rev, idx) => (
+                <Text key={idx} style={styles.reviewText}>
+                  {rev.review}
+                </Text>
+              ))}
             </View>
           )}
         </View>
@@ -175,6 +191,11 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 40,
   },
+  coverImage: {
+    width: "100%",
+    height: 300,
+    backgroundColor: "#e5e7eb",
+  },
   storyInfo: {
     padding: 20,
     backgroundColor: "#f9fafb",
@@ -190,6 +211,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
+    flexShrink: 1,
+    marginRight: 10,
   },
   genreText: {
     fontSize: 12,

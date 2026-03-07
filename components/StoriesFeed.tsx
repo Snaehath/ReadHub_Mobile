@@ -7,9 +7,10 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   RefreshControl,
+  Image,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { getAllStories } from "../services/storyService";
+import { getAllStories, getStoryCoverUrl } from "../services/storyService";
 import { Story } from "../types/story";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -20,6 +21,7 @@ const StoriesFeed = () => {
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
@@ -52,15 +54,35 @@ const StoriesFeed = () => {
       style={styles.storyCard}
       onPress={() => navigation.navigate("StoryDetail", { storyId: item.id })}
     >
+      {!imageErrors[item.id] ? (
+        <Image
+          source={{ uri: getStoryCoverUrl(item.id) }}
+          style={styles.coverImage}
+          resizeMode="cover"
+          onError={() =>
+            setImageErrors((prev) => ({ ...prev, [item.id]: true }))
+          }
+        />
+      ) : (
+        <View style={[styles.coverImage, styles.coverFallback]}>
+          <Feather name="book-open" size={32} color="#9ca3af" />
+          <Text style={styles.fallbackTitle} numberOfLines={2}>
+            {item.title}
+          </Text>
+        </View>
+      )}
+
       <View style={styles.genreContainer}>
         <View style={styles.genreBadge}>
-          <Text style={styles.genreText}>
+          <Text style={styles.genreText} numberOfLines={1}>
             {(item.genre || "GENRE").toUpperCase()}
           </Text>
         </View>
         <View style={styles.ratingContainer}>
           <Feather name="star" size={12} color="#f59e0b" />
-          <Text style={styles.ratingText}>{(item.rating || 0).toFixed(1)}</Text>
+          <Text style={styles.ratingText}>
+            {(item.averageRating || 0).toFixed(1)}
+          </Text>
         </View>
       </View>
 
@@ -149,7 +171,6 @@ const styles = StyleSheet.create({
   storyCard: {
     backgroundColor: "#fff",
     borderRadius: 16,
-    padding: 16,
     marginBottom: 15,
     marginHorizontal: 20,
     elevation: 3,
@@ -159,18 +180,41 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     borderWidth: 1,
     borderColor: "#f3f4f6",
+    overflow: "hidden",
+  },
+  coverImage: {
+    width: "100%",
+    height: 180,
+    backgroundColor: "#e5e7eb",
+  },
+  coverFallback: {
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f3f4f6",
+    padding: 20,
+  },
+  fallbackTitle: {
+    marginTop: 10,
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#6b7280",
+    textAlign: "center",
   },
   genreContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 10,
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
   genreBadge: {
     backgroundColor: "#f3e8ff",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
+    flexShrink: 1,
+    marginRight: 8,
   },
   genreText: {
     fontSize: 10,
@@ -198,12 +242,14 @@ const styles = StyleSheet.create({
     color: "#1f2937",
     lineHeight: 24,
     marginBottom: 8,
+    paddingHorizontal: 16,
   },
   subjectText: {
     fontSize: 14,
     color: "#4b5563",
     lineHeight: 20,
     marginBottom: 12,
+    paddingHorizontal: 16,
   },
   storyFooter: {
     flexDirection: "row",
@@ -212,6 +258,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#f3f4f6",
     paddingTop: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   authorContainer: {
     flexDirection: "row",

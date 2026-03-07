@@ -3,10 +3,16 @@ export interface Story {
   title: string;
   genre: string;
   subject: string;
+  synopsis?: string;
+  worldBuilding?: any;
+  characters?: any;
   authorName: string;
+  coverImage?: string;
   isCompleted: boolean;
   currentChapterCount: number;
-  rating: number;
+  maxChapters?: number;
+  averageRating?: number;
+  reviewCount?: number;
   index: string;
 }
 
@@ -19,8 +25,8 @@ export interface Chapter {
 
 export interface DetailedStory extends Story {
   chapters: Chapter[];
-  maxChapters: number;
-  review?: string;
+  tableOfContents?: any[];
+  reviews?: any[];
 }
 
 export interface StoriesResponse {
