@@ -57,3 +57,32 @@ export const Register = async (
     throw error;
   }
 };
+
+export const updateProfile = async (
+  userId: string,
+  username: string,
+  avatar: string,
+  token: string,
+): Promise<LoginResponse> => {
+  try {
+    const response = await fetch(`${baseUrl}/user/update`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ userId, username, avatar }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to update profile");
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Update profile service error:", error);
+    throw error;
+  }
+};

@@ -10,6 +10,11 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { User } from "../types/user";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../navigation/rootNavigator";
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 interface UserDrawerProps {
   isOpen: boolean;
@@ -26,6 +31,13 @@ const UserDrawer: React.FC<UserDrawerProps> = ({
   onLogout,
   getInitials,
 }) => {
+  const navigation = useNavigation<NavigationProp>();
+
+  const handleProfilePress = () => {
+    onClose();
+    navigation.navigate("Profile");
+  };
+
   return (
     <Modal
       visible={isOpen}
@@ -65,7 +77,10 @@ const UserDrawer: React.FC<UserDrawerProps> = ({
 
         <View style={styles.drawerDivider} />
 
-        <TouchableOpacity style={styles.drawerItem} onPress={onClose}>
+        <TouchableOpacity
+          style={styles.drawerItem}
+          onPress={handleProfilePress}
+        >
           <Feather name="user" size={20} color="#4b5563" />
           <Text style={styles.drawerItemText}>Profile Settings</Text>
         </TouchableOpacity>

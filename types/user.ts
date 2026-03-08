@@ -4,6 +4,7 @@ export interface User {
   username: string;
   avatar: string;
   createdAt: string;
+  role?: string;
 }
 
 export interface LoginResponse {
