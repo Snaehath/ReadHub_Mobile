@@ -8,9 +8,10 @@ import {
   ActivityIndicator,
   Image,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { getNewsPaginated } from "../services/news";
+import { getNewsPaginated, fetchLatestNews } from "../services/news";
 import { newsCategories } from "../constants/categories";
 import { NewsArticle } from "../types/news";
 
@@ -24,6 +25,7 @@ const NewsFeed = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedCountry, setSelectedCountry] = useState("us");
   const [hasMore, setHasMore] = useState(true);
+  const [updatingLatest, setUpdatingLatest] = useState(false);
 
   // actions
   const fetchNews = useCallback(
@@ -65,6 +67,38 @@ const NewsFeed = () => {
     fetchNews(1, selectedCategory, selectedCountry, true);
   };
 
+  const handleGetLatest = async (isPullToRefresh: boolean = false) => {
+    if (updatingLatest || (refreshing && !isPullToRefresh)) return;
+
+    if (isPullToRefresh) {
+      setRefreshing(true);
+    } else {
+      setUpdatingLatest(true);
+    }
+
+    try {
+      const success = await fetchLatestNews(selectedCountry as "us" | "in");
+      if (success) {
+        Alert.alert(
+          "Success",
+          `Latest ${selectedCountry.toUpperCase()} news updated!`,
+        );
+        handleRefresh(); // fetch the updated list from the DB
+      } else {
+        Alert.alert(
+          "Notice",
+          "Failed to fetch new articles. Used fallback cache.",
+        );
+        if (isPullToRefresh) setRefreshing(false);
+      }
+    } catch {
+      Alert.alert("Error", "Could not fetch latest news.");
+      if (isPullToRefresh) setRefreshing(false);
+    } finally {
+      if (!isPullToRefresh) setUpdatingLatest(false);
+    }
+  };
+
   const handleLoadMore = () => {
     if (!loadingMore && hasMore && !loading) {
       setLoadingMore(true);
@@ -93,10 +127,24 @@ const NewsFeed = () => {
   // render helpers
   const renderHeader = () => (
     <View>
-      <TouchableOpacity style={styles.searchContainer}>
-        <Feather name="search" size={20} color="#9ca3af" />
-        <Text style={styles.searchText}>Search news, topics...</Text>
-      </TouchableOpacity>
+      <View style={styles.topActionsRow}>
+        <TouchableOpacity style={styles.searchContainer}>
+          <Feather name="search" size={20} color="#9ca3af" />
+          <Text style={styles.searchText}>Search news, topics...</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.getLatestBtn, updatingLatest && { opacity: 0.8 }]}
+          onPress={() => handleGetLatest(false)}
+          disabled={updatingLatest}
+        >
+          {updatingLatest ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Feather name="refresh-ccw" size={18} color="#fff" />
+          )}
+        </TouchableOpacity>
+      </View>
 
       <FlatList
         data={newsCategories}
@@ -245,7 +293,7 @@ const NewsFeed = () => {
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
-          onRefresh={handleRefresh}
+          onRefresh={() => handleGetLatest(true)}
           colors={["#1f2937"]}
         />
       }
@@ -260,19 +308,37 @@ const styles = StyleSheet.create({
   listContent: {
     paddingBottom: 20,
   },
+  topActionsRow: {
+    flexDirection: "row",
+    marginHorizontal: 20,
+    marginBottom: 25,
+    gap: 10,
+  },
   searchContainer: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    marginHorizontal: 20,
     padding: 12,
     borderRadius: 12,
-    marginBottom: 25,
     elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
+  },
+  getLatestBtn: {
+    backgroundColor: "#4f46e5",
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 3,
+    shadowColor: "#4f46e5",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   searchText: {
     marginLeft: 10,

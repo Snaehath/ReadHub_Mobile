@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "readhub-app",
+    "name": "ReadHub",
     "slug": "readhub-app",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -22,7 +22,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.snaehath.readhubapp"
+      "package": "com.snaehath.readhubapp",
+      "versionCode": 2
     },
     "web": {
       "favicon": "./assets/favicon.png"

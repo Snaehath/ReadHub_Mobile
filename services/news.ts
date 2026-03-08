@@ -73,3 +73,26 @@ export async function getNewsPaginated(
     };
   }
 }
+
+export async function fetchLatestNews(country: "us" | "in"): Promise<boolean> {
+  try {
+    const baseUrl =
+      process.env.EXPO_PUBLIC_API_BASE_URL ||
+      "https://readhub-backend.onrender.com/api";
+
+    const endpoint = `${baseUrl}/news/fetch-categories/${country}`;
+
+    const res = await fetch(endpoint, {
+      method: "GET",
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to refresh latest news for ${country}`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error refreshing latest news:", error);
+    return false;
+  }
+}

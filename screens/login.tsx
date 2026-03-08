@@ -144,6 +144,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 18,
     backgroundColor: "#fff",
+    color: "#1f2937",
   },
   passwordContainer: {
     flexDirection: "row",
@@ -158,6 +159,7 @@ const styles = StyleSheet.create({
   passwordInput: {
     flex: 1,
     paddingVertical: 12,
+    color: "#1f2937",
   },
   showText: {
     fontWeight: "600",
