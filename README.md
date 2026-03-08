@@ -64,7 +64,8 @@ readhub-app/
 - **Pagination**: Implemented **Infinite Scrolling** (loads more news as you scroll).
 - **Category Filtering**: Horizontal scrolling categories to filter news by topic (Tech, Business, Sports, etc.).
 - **Country Switcher**: Toggle between **US** and **IN** (India) news sources seamlessly.
-- **Pull-to-Refresh**: Seamlessly reload the latest news.
+- **Pull-to-Refresh**: Supercharged pull-to-refresh that triggers a backend scrap/fetch from external APIs (NewsAPI/GNews) before updating the local feed.
+- **Get Latest Button**: A dedicated manual refresh button to force a backend update for the selected country.
 
 ### 3. **AI Story Integration**
 
@@ -129,4 +130,4 @@ Maintain code standards and type safety with these commands:
 
 ---
 
-_Last updated: March 8, 2026_
+_Last updated: March 8, 2026 (Added: Backend Fetch & Renew logic)_
