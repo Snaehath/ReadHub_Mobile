@@ -33,7 +33,8 @@ readhub-app/
 │   ├── home.tsx        # News & Stories tabed home screen
 │   ├── login.tsx       # User login with keyboard handling
 │   ├── register.tsx    # User registration with avatar picker
-│   └── storyDetail.tsx # Detailed viewing of AI stories
+│   ├── storyDetail.tsx # Detailed viewing of AI stories
+│   └── profile.tsx     # User profile viewing and editing
 ├── services/           # API service layer
 │   ├── news.ts         # Paginated news fetching logic
 │   ├── userService.ts  # Login and Registration API calls
@@ -53,7 +54,8 @@ readhub-app/
 
 - **Login screen**: Features email/password inputs, toggleable password visibility, and full keyboard handling (`TouchableWithoutFeedback` + `KeyboardAvoidingView`).
 - **Registration screen**: Allows new users to join. Includes a custom **Avatar Selection** UI with multiple pre-defined options.
-- **User Service**: Fully integrated with the backend API for `login` and `addUser` (register).
+- **Profile Management**: Full viewing and updating capabilities for users (username, display picture), protected by token-based authentication.
+- **User Service**: Fully integrated with the backend API for `login`, `addUser` (register), and profile `update`.
 
 ### 2. **Home Screen & News Feed**
 
@@ -127,4 +129,4 @@ Maintain code standards and type safety with these commands:
 
 ---
 
-_Last updated: March 7, 2026_
+_Last updated: March 8, 2026_
