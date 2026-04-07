@@ -5,6 +5,10 @@ export interface User {
   avatar: string;
   createdAt: string;
   role?: string;
+  likes_us?: string[];
+  likes_in?: string[];
+  bookmarks_us?: string[];
+  bookmarks_in?: string[];
 }
 
 export interface LoginResponse {

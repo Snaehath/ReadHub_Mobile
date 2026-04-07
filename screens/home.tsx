@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/rootNavigator";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthStore } from "../store/useAuthStore";
+import { getCurrentUser } from "../services/userService";
 import UserDrawer from "../components/UserDrawer";
 import NewsFeed from "../components/NewsFeed";
 import StoriesFeed from "../components/StoriesFeed";
@@ -24,10 +25,25 @@ const HomeScreen = () => {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   // states
-  const user = useAuthStore((state) => state.user);
+  const { user, token, setUser } = useAuthStore();
   const logout = useAuthStore((state) => state.logout);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"news" | "stories">("news");
+
+  // Sync user data on mount
+  useEffect(() => {
+    const syncUser = async () => {
+      if (token) {
+        try {
+          const freshUser = await getCurrentUser(token);
+          setUser(freshUser);
+        } catch {
+          console.error("Failed to sync user");
+        }
+      }
+    };
+    syncUser();
+  }, [token, setUser]);
 
   // helpers
   const getInitials = (name: string) => {

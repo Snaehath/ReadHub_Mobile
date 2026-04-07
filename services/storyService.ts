@@ -1,9 +1,11 @@
-import { Story, DetailedStory } from "../types/story";
+import { Story, DetailedStory, Review } from "../types/story";
 import { useAuthStore } from "../store/useAuthStore";
 
 const baseUrl =
   process.env.EXPO_PUBLIC_API_BASE_URL ||
   "https://readhub-backend.onrender.com/api";
+
+const storyApiUrl = `${baseUrl}/ai-hub/story`;
 
 export function getStoryCoverUrl(id: string): string {
   const coverBaseUrl = baseUrl.replace("/api", "") + "/covers";
@@ -12,7 +14,7 @@ export function getStoryCoverUrl(id: string): string {
 
 export async function getAllStories(): Promise<Story[]> {
   try {
-    const res = await fetch(`${baseUrl}/story/allStories`);
+    const res = await fetch(`${storyApiUrl}/allStories`);
 
     if (!res.ok) {
       throw new Error(`Failed to fetch stories: ${res.statusText}`);
@@ -28,7 +30,7 @@ export async function getAllStories(): Promise<Story[]> {
 
 export async function getStoryById(id: string): Promise<DetailedStory | null> {
   try {
-    const res = await fetch(`${baseUrl}/story/${id}`);
+    const res = await fetch(`${storyApiUrl}/${id}`);
 
     if (!res.ok) {
       throw new Error(`Failed to fetch story: ${res.statusText}`);
@@ -48,7 +50,7 @@ export async function getMyStory(
 ): Promise<{ story: Story; isInitializing?: boolean } | null> {
   try {
     const token = useAuthStore.getState().token;
-    let url = `${baseUrl}/story/myStory`;
+    let url = `${storyApiUrl}/myStory`;
     if (force) {
       url += "?force=true";
     }
@@ -74,5 +76,41 @@ export async function getMyStory(
   } catch (error) {
     console.error("Error fetching my story:", error);
     return null;
+  }
+}
+
+export async function submitReview(
+  storyId: string,
+  rating: number,
+  review: string,
+  reviewerName?: string,
+): Promise<boolean> {
+  try {
+    const token = useAuthStore.getState().token;
+    const res = await fetch(`${storyApiUrl}/${storyId}/review`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ rating, review, reviewerName }),
+    });
+
+    return res.ok;
+  } catch (error) {
+    console.error("Error submitting review:", error);
+    return false;
+  }
+}
+
+export async function getStoryReviews(storyId: string): Promise<Review[]> {
+  try {
+    const res = await fetch(`${storyApiUrl}/${storyId}/reviews`);
+    if (!res.ok) throw new Error("Failed to fetch reviews");
+    const data = await res.json();
+    return data.reviews || [];
+  } catch (error) {
+    console.error("Error fetching reviews:", error);
+    return [];
   }
 }

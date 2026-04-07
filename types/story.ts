@@ -1,3 +1,11 @@
+export interface Review {
+  userId: string;
+  reviewerName: string;
+  rating: number;
+  review: string;
+  createdAt: string;
+}
+
 export interface Story {
   id: string;
   title: string;
@@ -13,6 +21,7 @@ export interface Story {
   maxChapters?: number;
   averageRating?: number;
   reviewCount?: number;
+  ratingSum?: number;
   index: string;
 }
 
@@ -26,7 +35,7 @@ export interface Chapter {
 export interface DetailedStory extends Story {
   chapters: Chapter[];
   tableOfContents?: any[];
-  reviews?: any[];
+  reviews?: Review[];
 }
 
 export interface StoriesResponse {

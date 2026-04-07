@@ -20,7 +20,7 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/rootNavigator";
 import { useAuthStore } from "../store/useAuthStore";
-import { updateProfile } from "../services/userService";
+import { updateProfile, resetPassword } from "../services/userService";
 import { avatarOptions } from "../constants/user";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -34,6 +34,10 @@ const ProfileScreen = () => {
   const [newAvatar, setNewAvatar] = useState("");
   const [loading, setLoading] = useState(false);
   const [joinedDate, setJoinedDate] = useState("");
+
+  // Password reset states
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -50,7 +54,7 @@ const ProfileScreen = () => {
             day: "numeric",
           });
           setJoinedDate(formatted);
-        } catch (e) {
+        } catch {
           setJoinedDate("Unknown");
         }
       }
@@ -100,6 +104,29 @@ const ProfileScreen = () => {
     }
   };
 
+  const handleResetPassword = async () => {
+    if (!newPassword || newPassword.length < 6) {
+      Alert.alert("Error", "Password must be at least 6 characters long.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const success = await resetPassword(user.email, newPassword);
+      if (success) {
+        Alert.alert("Success", "Password reset successfully!");
+        setNewPassword("");
+        setIsResettingPassword(false);
+      } else {
+        Alert.alert("Error", "Failed to reset password.");
+      }
+    } catch {
+      Alert.alert("Error", "An unexpected error occurred.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCancel = () => {
     setNewUsername(user.username);
     setNewAvatar(user.avatar);
@@ -107,6 +134,15 @@ const ProfileScreen = () => {
   };
 
   const getInitials = (name: string) => name.substring(0, 2).toUpperCase();
+
+  const getInteractionCount = () => {
+    const likes = (user.likes_us?.length || 0) + (user.likes_in?.length || 0);
+    const bookmarks =
+      (user.bookmarks_us?.length || 0) + (user.bookmarks_in?.length || 0);
+    return { likes, bookmarks };
+  };
+
+  const { likes, bookmarks } = getInteractionCount();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -231,9 +267,73 @@ const ProfileScreen = () => {
                       </View>
                     )}
                   </View>
+
+                  {/* Interactions Stats */}
+                  <View style={styles.statsRow}>
+                    <View style={styles.statItem}>
+                      <Text style={styles.statNumber}>{likes}</Text>
+                      <Text style={styles.statLabel}>Likes</Text>
+                    </View>
+                    <View style={styles.divider} />
+                    <View style={styles.statItem}>
+                      <Text style={styles.statNumber}>{bookmarks}</Text>
+                      <Text style={styles.statLabel}>Bookmarks</Text>
+                    </View>
+                  </View>
                 </View>
               )}
             </View>
+
+            {/* Account Security Section */}
+            {!isEditing && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Account Security</Text>
+                {isResettingPassword ? (
+                  <View style={styles.passwordResetBox}>
+                    <TextInput
+                      style={styles.passwordInput}
+                      placeholder="Enter new password"
+                      value={newPassword}
+                      onChangeText={setNewPassword}
+                      secureTextEntry
+                      autoCapitalize="none"
+                    />
+                    <View style={styles.passwordActionRow}>
+                      <TouchableOpacity
+                        style={[styles.smallBtn, styles.cancelBtn]}
+                        onPress={() => setIsResettingPassword(false)}
+                      >
+                        <Text style={styles.cancelBtnText}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.smallBtn, styles.saveBtn]}
+                        onPress={handleResetPassword}
+                        disabled={loading}
+                      >
+                        {loading ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <Text style={styles.saveBtnText}>Reset</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.securityOption}
+                    onPress={() => setIsResettingPassword(true)}
+                  >
+                    <View style={styles.securityOptionLeft}>
+                      <Feather name="lock" size={20} color="#4b5563" />
+                      <Text style={styles.securityOptionText}>
+                        Reset Password
+                      </Text>
+                    </View>
+                    <Feather name="chevron-right" size={20} color="#9ca3af" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
           </ScrollView>
 
           {/* Footer Actions */}
@@ -341,9 +441,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   cardBanner: {
-    height: 100,
+    height: 80,
     width: "100%",
-    backgroundColor: "#4f46e5", // Indigo-600
+    backgroundColor: "#4f46e5",
   },
   avatarWrapper: {
     alignItems: "center",
@@ -395,6 +495,7 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "center",
     gap: 8,
+    marginBottom: 20,
   },
   roleBadge: {
     backgroundColor: "#eef2ff",
@@ -416,6 +517,102 @@ const styles = StyleSheet.create({
   },
   adminBadgeText: {
     color: "#d97706",
+  },
+  statsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f9fafb",
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    width: "100%",
+  },
+  statItem: {
+    alignItems: "center",
+    flex: 1,
+  },
+  statNumber: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#1f2937",
+  },
+  statLabel: {
+    fontSize: 12,
+    color: "#6b7280",
+    fontWeight: "600",
+  },
+  divider: {
+    width: 1,
+    height: 30,
+    backgroundColor: "#e5e7eb",
+  },
+  section: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#f3f4f6",
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1f2937",
+    marginBottom: 15,
+  },
+  securityOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+  },
+  securityOptionLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  securityOptionText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#4b5563",
+    marginLeft: 12,
+  },
+  passwordResetBox: {
+    marginTop: 5,
+  },
+  passwordInput: {
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 15,
+    fontSize: 15,
+  },
+  passwordActionRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+  },
+  smallBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    minWidth: 80,
+    alignItems: "center",
+  },
+  cancelBtn: {
+    backgroundColor: "#f3f4f6",
+  },
+  cancelBtnText: {
+    color: "#4b5563",
+    fontWeight: "700",
+  },
+  saveBtn: {
+    backgroundColor: "#4f46e5",
+  },
+  saveBtnText: {
+    color: "#fff",
+    fontWeight: "700",
   },
   editSection: {
     paddingHorizontal: 20,
@@ -460,7 +657,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   avatarOptionSelected: {
-    borderColor: "#4f46e5", // Indicator
+    borderColor: "#4f46e5",
   },
   avatarOptionImage: {
     width: "100%",

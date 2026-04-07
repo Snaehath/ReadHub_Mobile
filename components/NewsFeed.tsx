@@ -12,11 +12,14 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { getNewsPaginated, fetchLatestNews } from "../services/news";
+import { toggleLike, toggleBookmark } from "../services/userService";
+import { useAuthStore } from "../store/useAuthStore";
 import { newsCategories } from "../constants/categories";
 import { NewsArticle } from "../types/news";
 
 const NewsFeed = () => {
   // states
+  const { user, token, updateUser } = useAuthStore();
   const [news, setNews] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -26,6 +29,42 @@ const NewsFeed = () => {
   const [selectedCountry, setSelectedCountry] = useState("us");
   const [hasMore, setHasMore] = useState(true);
   const [updatingLatest, setUpdatingLatest] = useState(false);
+
+  // Interaction handlers
+  const handleToggleLike = async (newsId: string) => {
+    if (!token) return;
+    try {
+      const updatedLikes = await toggleLike(
+        newsId,
+        selectedCountry as "us" | "in",
+        token,
+      );
+      updateUser({
+        [selectedCountry === "us" ? "likes_us" : "likes_in"]: updatedLikes,
+      });
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Could not update like.");
+    }
+  };
+
+  const handleToggleBookmark = async (newsId: string) => {
+    if (!token) return;
+    try {
+      const updatedBookmarks = await toggleBookmark(
+        newsId,
+        selectedCountry as "us" | "in",
+        token,
+      );
+      updateUser({
+        [selectedCountry === "us" ? "bookmarks_us" : "bookmarks_in"]:
+          updatedBookmarks,
+      });
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Could not update bookmark.");
+    }
+  };
 
   // actions
   const fetchNews = useCallback(
@@ -176,7 +215,9 @@ const NewsFeed = () => {
         <Text style={styles.sectionTitle}>
           {selectedCategory === "all"
             ? `${selectedCountry === "in" ? "India" : "US"} Featured News`
-            : `${selectedCountry === "in" ? "India" : "US"} ${newsCategories.find((c) => c.id === selectedCategory)?.name} News`}
+            : `${selectedCountry === "in" ? "India" : "US"} ${
+                newsCategories.find((c) => c.id === selectedCategory)?.name
+              } News`}
         </Text>
         <View style={styles.countrySwitcher}>
           <TouchableOpacity
@@ -225,47 +266,83 @@ const NewsFeed = () => {
     );
   };
 
-  const renderItem = ({ item }: { item: NewsArticle }) => (
-    <TouchableOpacity style={styles.newsCard}>
-      <View style={styles.newsImagePlaceholder}>
-        {item.urlToImage ? (
-          <Image
-            source={{ uri: item.urlToImage }}
-            style={styles.newsImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <Feather name="image" size={32} color="#d1d5db" />
-        )}
-      </View>
-      <View style={styles.newsContent}>
-        <View style={styles.categoriesWrapper}>
-          {item.category && item.category.length > 0 ? (
-            item.category.slice(0, 3).map((cat, index) => (
-              <View key={index} style={styles.categoryBadge}>
-                <Text style={styles.categoryBadgeText}>
-                  {cat.toUpperCase()}
-                </Text>
-              </View>
-            ))
+  const renderItem = ({ item }: { item: NewsArticle }) => {
+    const isLiked =
+      selectedCountry === "us"
+        ? user?.likes_us?.includes(item.id)
+        : user?.likes_in?.includes(item.id);
+    const isBookmarked =
+      selectedCountry === "us"
+        ? user?.bookmarks_us?.includes(item.id)
+        : user?.bookmarks_in?.includes(item.id);
+
+    return (
+      <TouchableOpacity style={styles.newsCard}>
+        <View style={styles.newsImagePlaceholder}>
+          {item.urlToImage ? (
+            <Image
+              source={{ uri: item.urlToImage }}
+              style={styles.newsImage}
+              resizeMode="cover"
+            />
           ) : (
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryBadgeText}>NEWS</Text>
-            </View>
+            <Feather name="image" size={32} color="#d1d5db" />
           )}
         </View>
-        <Text style={styles.newsTitle} numberOfLines={2}>
-          {item.title}
-        </Text>
-        <View style={styles.newsFooter}>
-          <Feather name="clock" size={14} color="#9ca3af" />
-          <Text style={styles.newsTime}>
-            {new Date(item.publishedAt).toLocaleDateString()}
+        <View style={styles.newsContent}>
+          <View style={styles.categoriesWrapper}>
+            {item.category && item.category.length > 0 ? (
+              item.category.slice(0, 3).map((cat, index) => (
+                <View key={index} style={styles.categoryBadge}>
+                  <Text style={styles.categoryBadgeText}>
+                    {cat.toUpperCase()}
+                  </Text>
+                </View>
+              ))
+            ) : (
+              <View style={styles.categoryBadge}>
+                <Text style={styles.categoryBadgeText}>NEWS</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.newsTitle} numberOfLines={2}>
+            {item.title}
           </Text>
+          <View style={styles.newsFooter}>
+            <View style={styles.newsTimeWrapper}>
+              <Feather name="clock" size={14} color="#9ca3af" />
+              <Text style={styles.newsTime}>
+                {new Date(item.publishedAt).toLocaleDateString()}
+              </Text>
+            </View>
+
+            <View style={styles.actionRow}>
+              <TouchableOpacity
+                onPress={() => handleToggleLike(item.id)}
+                style={styles.actionBtn}
+              >
+                <Feather
+                  name="heart"
+                  size={18}
+                  color={isLiked ? "#ef4444" : "#9ca3af"}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleToggleBookmark(item.id)}
+                style={styles.actionBtn}
+              >
+                <Feather
+                  name="bookmark"
+                  size={18}
+                  color={isBookmarked ? "#3b82f6" : "#9ca3af"}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   // render
   if (loading && page === 1) {
@@ -440,11 +517,23 @@ const styles = StyleSheet.create({
   newsFooter: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+  },
+  newsTimeWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   newsTime: {
     fontSize: 12,
     color: "#9ca3af",
     marginLeft: 5,
+  },
+  actionRow: {
+    flexDirection: "row",
+    gap: 15,
+  },
+  actionBtn: {
+    padding: 4,
   },
   footerLoader: {
     paddingVertical: 20,
