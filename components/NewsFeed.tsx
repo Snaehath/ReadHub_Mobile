@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, memo } from "react";
 import {
   View,
   Text,
@@ -9,13 +9,127 @@ import {
   Image,
   RefreshControl,
   Alert,
+  TextInput,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { getNewsPaginated, fetchLatestNews } from "../services/news";
+import {
+  getNewsPaginated,
+  fetchLatestNews,
+  searchNews,
+} from "../services/news";
 import { toggleLike, toggleBookmark } from "../services/userService";
 import { useAuthStore } from "../store/useAuthStore";
 import { newsCategories } from "../constants/categories";
 import { NewsArticle } from "../types/news";
+
+interface NewsHeaderProps {
+  searchQuery: string;
+  setSearchQuery: (val: string) => void;
+  handleSearchSubmit: () => void;
+  clearSearch: () => void;
+  updatingLatest: boolean;
+  handleGetLatest: (refresh?: boolean) => void;
+  activeSearch: string;
+  selectedCategory: string;
+  selectedCountry: string;
+  handleCategoryPress: (id: string) => void;
+  handleCountryPress: (id: string) => void;
+}
+
+const NewsHeader = memo(function NewsHeader({
+  activeSearch,
+  selectedCategory,
+  selectedCountry,
+  handleCategoryPress,
+  handleCountryPress,
+}: Omit<
+  NewsHeaderProps,
+  | "searchQuery"
+  | "setSearchQuery"
+  | "handleSearchSubmit"
+  | "clearSearch"
+  | "updatingLatest"
+  | "handleGetLatest"
+>) {
+  return (
+    <View>
+      {!activeSearch && (
+        <FlatList
+          data={newsCategories}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoriesContainer}
+          keyExtractor={(item) => item.id}
+          keyboardShouldPersistTaps="handled"
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[
+                styles.categoryItem,
+                selectedCategory === item.id && styles.categoryItemActive,
+              ]}
+              onPress={() => handleCategoryPress(item.id)}
+            >
+              <Text
+                style={[
+                  styles.categoryText,
+                  selectedCategory === item.id && styles.categoryTextActive,
+                ]}
+              >
+                {item.name}
+              </Text>
+            </TouchableOpacity>
+          )}
+        />
+      )}
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>
+          {activeSearch
+            ? `Search Results for "${activeSearch}"`
+            : selectedCategory === "all"
+              ? `${selectedCountry === "in" ? "India" : "US"} Featured News`
+              : `${selectedCountry === "in" ? "India" : "US"} ${
+                  newsCategories.find((c) => c.id === selectedCategory)?.name
+                } News`}
+        </Text>
+        <View style={styles.countrySwitcher}>
+          <TouchableOpacity
+            style={[
+              styles.countryItem,
+              selectedCountry === "us" && styles.countryItemActive,
+            ]}
+            onPress={() => handleCountryPress("us")}
+          >
+            <Text
+              style={[
+                styles.countryText,
+                selectedCountry === "us" && styles.countryTextActive,
+              ]}
+            >
+              🇺🇸 US
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.countryItem,
+              selectedCountry === "in" && styles.countryItemActive,
+            ]}
+            onPress={() => handleCountryPress("in")}
+          >
+            <Text
+              style={[
+                styles.countryText,
+                selectedCountry === "in" && styles.countryTextActive,
+              ]}
+            >
+              🇮🇳 IN
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+});
 
 const NewsFeed = () => {
   // states
@@ -29,6 +143,19 @@ const NewsFeed = () => {
   const [selectedCountry, setSelectedCountry] = useState("us");
   const [hasMore, setHasMore] = useState(true);
   const [updatingLatest, setUpdatingLatest] = useState(false);
+
+  // Search states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setActiveSearch(searchQuery);
+    }, 600); // 600ms debounce
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Interaction handlers
   const handleToggleLike = async (newsId: string) => {
@@ -73,10 +200,17 @@ const NewsFeed = () => {
       category: string,
       country: string,
       shouldRefresh = false,
+      query = "",
     ) => {
       try {
         if (pageNum === 1) setLoading(true);
-        const data = await getNewsPaginated(pageNum, 12, category, country);
+
+        let data;
+        if (query.trim()) {
+          data = await searchNews(query, country, pageNum, 12);
+        } else {
+          data = await getNewsPaginated(pageNum, 12, category, country);
+        }
 
         if (shouldRefresh || pageNum === 1) {
           setNews(data.news);
@@ -97,13 +231,14 @@ const NewsFeed = () => {
   );
 
   useEffect(() => {
-    fetchNews(1, selectedCategory, selectedCountry);
-  }, [selectedCategory, selectedCountry, fetchNews]);
+    setPage(1); // Reset page on query/category/country change
+    fetchNews(1, selectedCategory, selectedCountry, false, activeSearch);
+  }, [selectedCategory, selectedCountry, activeSearch, fetchNews]);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setPage(1);
-    fetchNews(1, selectedCategory, selectedCountry, true);
+    fetchNews(1, selectedCategory, selectedCountry, true, activeSearch);
   };
 
   const handleGetLatest = async (isPullToRefresh: boolean = false) => {
@@ -143,119 +278,50 @@ const NewsFeed = () => {
       setLoadingMore(true);
       const nextPage = page + 1;
       setPage(nextPage);
-      fetchNews(nextPage, selectedCategory, selectedCountry);
+      fetchNews(
+        nextPage,
+        selectedCategory,
+        selectedCountry,
+        false,
+        activeSearch,
+      );
     }
   };
 
-  const handleCategoryPress = (categoryId: string) => {
-    if (selectedCategory !== categoryId) {
-      setSelectedCategory(categoryId);
-      setPage(1);
-      setNews([]);
-    }
+  const handleCategoryPress = useCallback((categoryId: string) => {
+    setSelectedCategory((prev) => {
+      if (prev !== categoryId) {
+        setPage(1);
+        setNews([]);
+        setSearchQuery("");
+        setActiveSearch("");
+        return categoryId;
+      }
+      return prev;
+    });
+  }, []);
+
+  const handleCountryPress = useCallback((countryId: string) => {
+    setSelectedCountry((prev) => {
+      if (prev !== countryId) {
+        setPage(1);
+        setNews([]);
+        return countryId;
+      }
+      return prev;
+    });
+  }, []);
+
+  const handleSearchSubmit = () => {
+    setActiveSearch(searchQuery);
   };
 
-  const handleCountryPress = (countryId: string) => {
-    if (selectedCountry !== countryId) {
-      setSelectedCountry(countryId);
-      setPage(1);
-      setNews([]);
-    }
+  const clearSearch = () => {
+    setSearchQuery("");
+    setActiveSearch("");
+    setPage(1);
+    setNews([]);
   };
-
-  // render helpers
-  const renderHeader = () => (
-    <View>
-      <View style={styles.topActionsRow}>
-        <TouchableOpacity style={styles.searchContainer}>
-          <Feather name="search" size={20} color="#9ca3af" />
-          <Text style={styles.searchText}>Search news, topics...</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.getLatestBtn, updatingLatest && { opacity: 0.8 }]}
-          onPress={() => handleGetLatest(false)}
-          disabled={updatingLatest}
-        >
-          {updatingLatest ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Feather name="refresh-ccw" size={18} color="#fff" />
-          )}
-        </TouchableOpacity>
-      </View>
-
-      <FlatList
-        data={newsCategories}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoriesContainer}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.categoryItem,
-              selectedCategory === item.id && styles.categoryItemActive,
-            ]}
-            onPress={() => handleCategoryPress(item.id)}
-          >
-            <Text
-              style={[
-                styles.categoryText,
-                selectedCategory === item.id && styles.categoryTextActive,
-              ]}
-            >
-              {item.name}
-            </Text>
-          </TouchableOpacity>
-        )}
-      />
-
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>
-          {selectedCategory === "all"
-            ? `${selectedCountry === "in" ? "India" : "US"} Featured News`
-            : `${selectedCountry === "in" ? "India" : "US"} ${
-                newsCategories.find((c) => c.id === selectedCategory)?.name
-              } News`}
-        </Text>
-        <View style={styles.countrySwitcher}>
-          <TouchableOpacity
-            style={[
-              styles.countryItem,
-              selectedCountry === "us" && styles.countryItemActive,
-            ]}
-            onPress={() => handleCountryPress("us")}
-          >
-            <Text
-              style={[
-                styles.countryText,
-                selectedCountry === "us" && styles.countryTextActive,
-              ]}
-            >
-              🇺🇸 US
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.countryItem,
-              selectedCountry === "in" && styles.countryItemActive,
-            ]}
-            onPress={() => handleCountryPress("in")}
-          >
-            <Text
-              style={[
-                styles.countryText,
-                selectedCountry === "in" && styles.countryTextActive,
-              ]}
-            >
-              🇮🇳 IN
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  );
 
   const renderFooter = () => {
     if (!loadingMore) return <View style={{ height: 20 }} />;
@@ -325,6 +391,7 @@ const NewsFeed = () => {
                   name="heart"
                   size={18}
                   color={isLiked ? "#ef4444" : "#9ca3af"}
+                  fill={isLiked ? "#ef4444" : "transparent"}
                 />
               </TouchableOpacity>
               <TouchableOpacity
@@ -335,6 +402,7 @@ const NewsFeed = () => {
                   name="bookmark"
                   size={18}
                   color={isBookmarked ? "#3b82f6" : "#9ca3af"}
+                  fill={isBookmarked ? "#3b82f6" : "transparent"}
                 />
               </TouchableOpacity>
             </View>
@@ -344,38 +412,96 @@ const NewsFeed = () => {
     );
   };
 
-  // render
-  if (loading && page === 1) {
-    return (
-      <View style={styles.centerLoader}>
-        {renderHeader()}
-        <ActivityIndicator
-          size="large"
-          color="#1f2937"
-          style={{ marginTop: 50 }}
-        />
-      </View>
-    );
-  }
-
   return (
-    <FlatList
-      data={news}
-      keyExtractor={(item) => item.id}
-      renderItem={renderItem}
-      ListHeaderComponent={renderHeader}
-      ListFooterComponent={renderFooter}
-      onEndReached={handleLoadMore}
-      onEndReachedThreshold={0.5}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={() => handleGetLatest(true)}
-          colors={["#1f2937"]}
+    <View style={{ flex: 1 }}>
+      <View style={styles.topActionsRow}>
+        <View style={styles.searchContainer}>
+          <Feather name="search" size={20} color="#9ca3af" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search news, topics..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onSubmitEditing={handleSearchSubmit}
+            returnKeyType="search"
+            placeholderTextColor="#9ca3af"
+            autoCorrect={false}
+            autoCapitalize="none"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={clearSearch}>
+              <Feather name="x" size={18} color="#9ca3af" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <TouchableOpacity
+          style={[styles.getLatestBtn, updatingLatest && { opacity: 0.8 }]}
+          onPress={() => handleGetLatest(false)}
+          disabled={updatingLatest}
+        >
+          {updatingLatest ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Feather name="refresh-ccw" size={18} color="#fff" />
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {loading && page === 1 ? (
+        <View style={styles.centerLoader}>
+          <NewsHeader
+            activeSearch={activeSearch}
+            selectedCategory={selectedCategory}
+            selectedCountry={selectedCountry}
+            handleCategoryPress={handleCategoryPress}
+            handleCountryPress={handleCountryPress}
+          />
+          <ActivityIndicator
+            size="large"
+            color="#1f2937"
+            style={{ marginTop: 50 }}
+          />
+        </View>
+      ) : (
+        <FlatList
+          data={news}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          keyboardShouldPersistTaps="handled"
+          ListHeaderComponent={
+            <NewsHeader
+              activeSearch={activeSearch}
+              selectedCategory={selectedCategory}
+              selectedCountry={selectedCountry}
+              handleCategoryPress={handleCategoryPress}
+              handleCountryPress={handleCountryPress}
+            />
+          }
+          ListFooterComponent={renderFooter}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => handleRefresh()}
+              colors={["#1f2937"]}
+            />
+          }
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            !loading ? (
+              <View style={styles.emptyContainer}>
+                <Feather name="search" size={50} color="#d1d5db" />
+                <Text style={styles.emptyText}>
+                  No news found for your query.
+                </Text>
+              </View>
+            ) : null
+          }
         />
-      }
-      contentContainerStyle={styles.listContent}
-    />
+      )}
+    </View>
   );
 };
 
@@ -396,13 +522,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderRadius: 12,
     elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 10,
+    color: "#1f2937",
+    fontSize: 16,
+    height: 38,
+    padding: 0,
   },
   getLatestBtn: {
     backgroundColor: "#4f46e5",
@@ -416,11 +551,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
-  },
-  searchText: {
-    marginLeft: 10,
-    color: "#9ca3af",
-    fontSize: 16,
   },
   categoriesContainer: {
     paddingHorizontal: 15,
@@ -457,6 +587,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     color: "#1f2937",
+    flex: 1,
+    marginRight: 10,
   },
   newsCard: {
     flexDirection: "row",
@@ -568,5 +700,16 @@ const styles = StyleSheet.create({
   },
   countryTextActive: {
     color: "#1f2937",
+  },
+  emptyContainer: {
+    padding: 50,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyText: {
+    marginTop: 15,
+    color: "#9ca3af",
+    textAlign: "center",
+    fontSize: 16,
   },
 });

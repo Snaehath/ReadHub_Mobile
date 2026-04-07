@@ -96,3 +96,63 @@ export async function fetchLatestNews(country: "us" | "in"): Promise<boolean> {
     return false;
   }
 }
+
+export async function searchNews(
+  query: string,
+  country: string = "us",
+  page: number = 1,
+  limit: number = 12,
+): Promise<PaginatedNewsResponse> {
+  try {
+    const params = new URLSearchParams({
+      q: query,
+      page: String(page),
+      limit: String(limit),
+    });
+
+    const baseUrl =
+      process.env.EXPO_PUBLIC_API_BASE_URL ||
+      "https://readhub-backend.onrender.com/api";
+
+    const endpoint =
+      country === "in"
+        ? `${baseUrl}/news/search/in`
+        : `${baseUrl}/news/search/us`;
+
+    const res = await fetch(`${endpoint}?${params.toString()}`);
+
+    if (!res.ok) {
+      throw new Error(`Failed to search news for ${country}`);
+    }
+
+    const data = await res.json();
+
+    const formattedNews: NewsArticle[] = data.articles.map((article: any) => ({
+      id: article._id.toString(),
+      title: article.title,
+      description: article.description,
+      content: article.content,
+      url: article.url,
+      urlToImage: article.urlToImage,
+      publishedAt: article.publishedAt,
+      dateOriginal: article.publishedAt,
+      source: article.source ?? { name: "Unknown" },
+      category: article.category ?? [],
+    }));
+
+    return {
+      news: formattedNews,
+      totalPages: data.totalPages,
+      currentPage: data.currentPage,
+      totalArticles: data.totalArticles,
+    };
+  } catch (error) {
+    console.error("Error searching news:", error);
+    return {
+      news: [],
+      totalPages: 0,
+      currentPage: 1,
+      totalArticles: 0,
+    };
+  }
+}
