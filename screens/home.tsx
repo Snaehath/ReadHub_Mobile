@@ -16,7 +16,6 @@ import { useAuthStore } from "../store/useAuthStore";
 import { getCurrentUser } from "../services/userService";
 import UserDrawer from "../components/UserDrawer";
 import NewsFeed from "../components/NewsFeed";
-import StoriesFeed from "../components/StoriesFeed";
 
 const HomeScreen = () => {
   // hooks
@@ -28,7 +27,6 @@ const HomeScreen = () => {
   const { user, token, setUser } = useAuthStore();
   const logout = useAuthStore((state) => state.logout);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"news" | "stories">("news");
 
   // Sync user data on mount
   useEffect(() => {
@@ -110,39 +108,7 @@ const HomeScreen = () => {
         getInitials={getInitials}
       />
 
-      <View style={styles.tabSwitcher}>
-        <TouchableOpacity
-          style={[styles.tabItem, activeTab === "news" && styles.activeTabItem]}
-          onPress={() => setActiveTab("news")}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === "news" && styles.activeTabText,
-            ]}
-          >
-            News
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.tabItem,
-            activeTab === "stories" && styles.activeTabItem,
-          ]}
-          onPress={() => setActiveTab("stories")}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === "stories" && styles.activeTabText,
-            ]}
-          >
-            AI Stories
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {activeTab === "news" ? <NewsFeed /> : <StoriesFeed />}
+      <NewsFeed />
     </View>
   );
 };
@@ -159,11 +125,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 10,
-    paddingBottom: 20,
+    paddingBottom: 15,
     backgroundColor: "#f9fafb",
   },
   greeting: {
-    fontSize: 16,
+    fontSize: 15,
     color: "#6b7280",
     fontWeight: "400",
   },
@@ -199,36 +165,6 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     zIndex: 10,
-  },
-  tabSwitcher: {
-    flexDirection: "row",
-    backgroundColor: "#f3f4f6",
-    borderRadius: 12,
-    marginHorizontal: 20,
-    marginBottom: 20,
-    padding: 4,
-  },
-  tabItem: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: "center",
-    borderRadius: 8,
-  },
-  activeTabItem: {
-    backgroundColor: "#fff",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#6b7280",
-  },
-  activeTabText: {
-    color: "#1f2937",
   },
 });
 

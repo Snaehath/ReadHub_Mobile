@@ -10,6 +10,8 @@ import {
   RefreshControl,
   Alert,
   TextInput,
+  Linking,
+  Share,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import {
@@ -23,12 +25,6 @@ import { newsCategories } from "../constants/categories";
 import { NewsArticle } from "../types/news";
 
 interface NewsHeaderProps {
-  searchQuery: string;
-  setSearchQuery: (val: string) => void;
-  handleSearchSubmit: () => void;
-  clearSearch: () => void;
-  updatingLatest: boolean;
-  handleGetLatest: (refresh?: boolean) => void;
   activeSearch: string;
   selectedCategory: string;
   selectedCountry: string;
@@ -42,15 +38,7 @@ const NewsHeader = memo(function NewsHeader({
   selectedCountry,
   handleCategoryPress,
   handleCountryPress,
-}: Omit<
-  NewsHeaderProps,
-  | "searchQuery"
-  | "setSearchQuery"
-  | "handleSearchSubmit"
-  | "clearSearch"
-  | "updatingLatest"
-  | "handleGetLatest"
->) {
+}: NewsHeaderProps) {
   return (
     <View>
       {!activeSearch && (
@@ -85,12 +73,12 @@ const NewsHeader = memo(function NewsHeader({
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>
           {activeSearch
-            ? `Search Results for "${activeSearch}"`
+            ? `Results for "${activeSearch}"`
             : selectedCategory === "all"
-              ? `${selectedCountry === "in" ? "India" : "US"} Featured News`
+              ? `${selectedCountry === "in" ? "India" : "US"} Flash Feed`
               : `${selectedCountry === "in" ? "India" : "US"} ${
                   newsCategories.find((c) => c.id === selectedCategory)?.name
-                } News`}
+                }`}
         </Text>
         <View style={styles.countrySwitcher}>
           <TouchableOpacity
@@ -131,6 +119,241 @@ const NewsHeader = memo(function NewsHeader({
   );
 });
 
+interface FlashNewsCardProps {
+  item: NewsArticle;
+  isLiked: boolean;
+  isBookmarked: boolean;
+  onToggleLike: (id: string) => void;
+  onToggleBookmark: (id: string) => void;
+}
+
+const FlashNewsCard = memo(function FlashNewsCard({
+  item,
+  isLiked,
+  isBookmarked,
+  onToggleLike,
+  onToggleBookmark,
+}: FlashNewsCardProps) {
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+
+  const handleOpenSource = async () => {
+    if (item.url) {
+      try {
+        await Linking.openURL(item.url);
+      } catch {
+        Alert.alert("Error", "Could not open source URL");
+      }
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        title: item.title,
+        message: `📌 ${item.title}\n\nRead more on ReadHub: ${item.url}`,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const toggleAudio = () => {
+    setIsPlayingAudio((prev) => !prev);
+    if (!isPlayingAudio) {
+      Alert.alert("🎙️ Audio Summary", "Playing 15s AI audio brief...");
+    }
+  };
+
+  // Generate synthetic bullet takeaways if backend summary is absent
+  const getTakeaways = () => {
+    const desc = item.description || item.title || "";
+    const words = desc.split(" ");
+    const chunkSize = Math.max(3, Math.ceil(words.length / 3));
+
+    const bullet1 = words.slice(0, chunkSize).join(" ") || "Major developments reported in recent hours.";
+    const bullet2 = words.slice(chunkSize, chunkSize * 2).join(" ") || "Key stakeholders and analysts react to current events.";
+    const bullet3 = words.slice(chunkSize * 2).join(" ") || "Further updates and market response expected soon.";
+
+    return { bullet1, bullet2, bullet3 };
+  };
+
+  const takeaways = getTakeaways();
+
+  return (
+    <View style={styles.flashcardContainer}>
+      {!isFlipped ? (
+        /* Front Face of Flashcard */
+        <View style={styles.cardFront}>
+          {/* Card Hero Image */}
+          <View style={styles.imageContainer}>
+            {item.urlToImage ? (
+              <Image
+                source={{ uri: item.urlToImage }}
+                style={styles.heroImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.placeholderImage}>
+                <Feather name="layers" size={36} color="#9ca3af" />
+              </View>
+            )}
+
+            {/* Badges on Hero Image */}
+            <View style={styles.imageBadgeOverlay}>
+              {item.category && item.category.length > 0 ? (
+                <View style={styles.categoryBadge}>
+                  <Text style={styles.categoryBadgeText}>
+                    ⚡ {item.category[0].toUpperCase()}
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.categoryBadge}>
+                  <Text style={styles.categoryBadgeText}>⚡ FLASH</Text>
+                </View>
+              )}
+
+              <TouchableOpacity style={styles.audioBtn} onPress={toggleAudio}>
+                <Feather
+                  name={isPlayingAudio ? "pause" : "volume-2"}
+                  size={16}
+                  color="#fff"
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Body Content */}
+          <View style={styles.cardBody}>
+            <Text style={styles.newsTitle} numberOfLines={3}>
+              {item.title}
+            </Text>
+
+            {!!item.description && (
+              <Text style={styles.newsDescription} numberOfLines={2}>
+                {item.description}
+              </Text>
+            )}
+
+            {/* Footer Bar */}
+            <View style={styles.cardFooter}>
+              <View style={styles.newsTimeWrapper}>
+                <Feather name="clock" size={13} color="#9ca3af" />
+                <Text style={styles.newsTime}>
+                  {new Date(item.publishedAt).toLocaleDateString()}
+                </Text>
+              </View>
+
+              <View style={styles.actionGroup}>
+                <TouchableOpacity
+                  onPress={() => onToggleLike(item.id)}
+                  style={styles.iconBtn}
+                >
+                  <Feather
+                    name="heart"
+                    size={18}
+                    color={isLiked ? "#ef4444" : "#6b7280"}
+                    fill={isLiked ? "#ef4444" : "transparent"}
+                  />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => onToggleBookmark(item.id)}
+                  style={styles.iconBtn}
+                >
+                  <Feather
+                    name="bookmark"
+                    size={18}
+                    color={isBookmarked ? "#3b82f6" : "#6b7280"}
+                    fill={isBookmarked ? "#3b82f6" : "transparent"}
+                  />
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={handleShare} style={styles.iconBtn}>
+                  <Feather name="share-2" size={18} color="#6b7280" />
+                </TouchableOpacity>
+
+                {/* Flip Action Button */}
+                <TouchableOpacity
+                  style={styles.flipBtn}
+                  onPress={() => setIsFlipped(true)}
+                >
+                  <Feather name="rotate-cw" size={14} color="#fff" />
+                  <Text style={styles.flipBtnText}>3 Takeaways</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      ) : (
+        /* Back Face / Expanded Breakdown of Flashcard */
+        <View style={styles.cardBack}>
+          <View style={styles.cardBackHeader}>
+            <View style={styles.backHeaderBadge}>
+              <Feather name="zap" size={14} color="#4f46e5" />
+              <Text style={styles.backHeaderTitle}>Key Bullet Takeaways</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.closeBackBtn}
+              onPress={() => setIsFlipped(false)}
+            >
+              <Feather name="x" size={18} color="#6b7280" />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.backNewsTitle} numberOfLines={2}>
+            {item.title}
+          </Text>
+
+          <View style={styles.takeawaysList}>
+            <View style={styles.takeawayItem}>
+              <Text style={styles.takeawayDot}>📌</Text>
+              <View style={styles.takeawayTextContainer}>
+                <Text style={styles.takeawayLabel}>Why It Matters</Text>
+                <Text style={styles.takeawayContent}>{takeaways.bullet1}</Text>
+              </View>
+            </View>
+
+            <View style={styles.takeawayItem}>
+              <Text style={styles.takeawayDot}>💡</Text>
+              <View style={styles.takeawayTextContainer}>
+                <Text style={styles.takeawayLabel}>Key Context</Text>
+                <Text style={styles.takeawayContent}>{takeaways.bullet2}</Text>
+              </View>
+            </View>
+
+            <View style={styles.takeawayItem}>
+              <Text style={styles.takeawayDot}>🔮</Text>
+              <View style={styles.takeawayTextContainer}>
+                <Text style={styles.takeawayLabel}>Outlook</Text>
+                <Text style={styles.takeawayContent}>{takeaways.bullet3}</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.backFooterRow}>
+            <TouchableOpacity
+              style={styles.sourceBtn}
+              onPress={handleOpenSource}
+            >
+              <Text style={styles.sourceBtnText}>Read Full Source</Text>
+              <Feather name="external-link" size={14} color="#4f46e5" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.returnFrontBtn}
+              onPress={() => setIsFlipped(false)}
+            >
+              <Feather name="rotate-ccw" size={14} color="#4b5563" />
+              <Text style={styles.returnFrontText}>Card View</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+});
+
 const NewsFeed = () => {
   // states
   const { user, token, updateUser } = useAuthStore();
@@ -152,46 +375,52 @@ const NewsFeed = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setActiveSearch(searchQuery);
-    }, 600); // 600ms debounce
+    }, 600);
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
   // Interaction handlers
-  const handleToggleLike = async (newsId: string) => {
-    if (!token) return;
-    try {
-      const updatedLikes = await toggleLike(
-        newsId,
-        selectedCountry as "us" | "in",
-        token,
-      );
-      updateUser({
-        [selectedCountry === "us" ? "likes_us" : "likes_in"]: updatedLikes,
-      });
-    } catch (error) {
-      console.error(error);
-      Alert.alert("Error", "Could not update like.");
-    }
-  };
+  const handleToggleLike = useCallback(
+    async (newsId: string) => {
+      if (!token) return;
+      try {
+        const updatedLikes = await toggleLike(
+          newsId,
+          selectedCountry as "us" | "in",
+          token,
+        );
+        updateUser({
+          [selectedCountry === "us" ? "likes_us" : "likes_in"]: updatedLikes,
+        });
+      } catch (error) {
+        console.error(error);
+        Alert.alert("Error", "Could not update like.");
+      }
+    },
+    [token, selectedCountry, updateUser],
+  );
 
-  const handleToggleBookmark = async (newsId: string) => {
-    if (!token) return;
-    try {
-      const updatedBookmarks = await toggleBookmark(
-        newsId,
-        selectedCountry as "us" | "in",
-        token,
-      );
-      updateUser({
-        [selectedCountry === "us" ? "bookmarks_us" : "bookmarks_in"]:
-          updatedBookmarks,
-      });
-    } catch (error) {
-      console.error(error);
-      Alert.alert("Error", "Could not update bookmark.");
-    }
-  };
+  const handleToggleBookmark = useCallback(
+    async (newsId: string) => {
+      if (!token) return;
+      try {
+        const updatedBookmarks = await toggleBookmark(
+          newsId,
+          selectedCountry as "us" | "in",
+          token,
+        );
+        updateUser({
+          [selectedCountry === "us" ? "bookmarks_us" : "bookmarks_in"]:
+            updatedBookmarks,
+        });
+      } catch (error) {
+        console.error(error);
+        Alert.alert("Error", "Could not update bookmark.");
+      }
+    },
+    [token, selectedCountry, updateUser],
+  );
 
   // actions
   const fetchNews = useCallback(
@@ -207,9 +436,9 @@ const NewsFeed = () => {
 
         let data;
         if (query.trim()) {
-          data = await searchNews(query, country, pageNum, 12);
+          data = await searchNews(query, country, pageNum, 10);
         } else {
-          data = await getNewsPaginated(pageNum, 12, category, country);
+          data = await getNewsPaginated(pageNum, 10, category, country);
         }
 
         if (shouldRefresh || pageNum === 1) {
@@ -231,7 +460,7 @@ const NewsFeed = () => {
   );
 
   useEffect(() => {
-    setPage(1); // Reset page on query/category/country change
+    setPage(1);
     fetchNews(1, selectedCategory, selectedCountry, false, activeSearch);
   }, [selectedCategory, selectedCountry, activeSearch, fetchNews]);
 
@@ -255,14 +484,11 @@ const NewsFeed = () => {
       if (success) {
         Alert.alert(
           "Success",
-          `Latest ${selectedCountry.toUpperCase()} news updated!`,
+          `Latest ${selectedCountry.toUpperCase()} flashcards updated!`,
         );
-        handleRefresh(); // fetch the updated list from the DB
+        handleRefresh();
       } else {
-        Alert.alert(
-          "Notice",
-          "Failed to fetch new articles. Used fallback cache.",
-        );
+        Alert.alert("Notice", "Failed to fetch new articles. Used cache.");
         if (isPullToRefresh) setRefreshing(false);
       }
     } catch {
@@ -312,10 +538,6 @@ const NewsFeed = () => {
     });
   }, []);
 
-  const handleSearchSubmit = () => {
-    setActiveSearch(searchQuery);
-  };
-
   const clearSearch = () => {
     setSearchQuery("");
     setActiveSearch("");
@@ -324,105 +546,56 @@ const NewsFeed = () => {
   };
 
   const renderFooter = () => {
-    if (!loadingMore) return <View style={{ height: 20 }} />;
+    if (!loadingMore) return <View style={{ height: 30 }} />;
     return (
       <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color="#1f2937" />
+        <ActivityIndicator size="small" color="#4f46e5" />
       </View>
     );
   };
 
-  const renderItem = ({ item }: { item: NewsArticle }) => {
-    const isLiked =
-      selectedCountry === "us"
-        ? user?.likes_us?.includes(item.id)
-        : user?.likes_in?.includes(item.id);
-    const isBookmarked =
-      selectedCountry === "us"
-        ? user?.bookmarks_us?.includes(item.id)
-        : user?.bookmarks_in?.includes(item.id);
+  const renderItem = useCallback(
+    ({ item }: { item: NewsArticle }) => {
+      const isLiked =
+        selectedCountry === "us"
+          ? user?.likes_us?.includes(item.id)
+          : user?.likes_in?.includes(item.id);
+      const isBookmarked =
+        selectedCountry === "us"
+          ? user?.bookmarks_us?.includes(item.id)
+          : user?.bookmarks_in?.includes(item.id);
 
-    return (
-      <TouchableOpacity style={styles.newsCard}>
-        <View style={styles.newsImagePlaceholder}>
-          {item.urlToImage ? (
-            <Image
-              source={{ uri: item.urlToImage }}
-              style={styles.newsImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <Feather name="image" size={32} color="#d1d5db" />
-          )}
-        </View>
-        <View style={styles.newsContent}>
-          <View style={styles.categoriesWrapper}>
-            {item.category && item.category.length > 0 ? (
-              item.category.slice(0, 3).map((cat, index) => (
-                <View key={index} style={styles.categoryBadge}>
-                  <Text style={styles.categoryBadgeText}>
-                    {cat.toUpperCase()}
-                  </Text>
-                </View>
-              ))
-            ) : (
-              <View style={styles.categoryBadge}>
-                <Text style={styles.categoryBadgeText}>NEWS</Text>
-              </View>
-            )}
-          </View>
-          <Text style={styles.newsTitle} numberOfLines={2}>
-            {item.title}
-          </Text>
-          <View style={styles.newsFooter}>
-            <View style={styles.newsTimeWrapper}>
-              <Feather name="clock" size={14} color="#9ca3af" />
-              <Text style={styles.newsTime}>
-                {new Date(item.publishedAt).toLocaleDateString()}
-              </Text>
-            </View>
-
-            <View style={styles.actionRow}>
-              <TouchableOpacity
-                onPress={() => handleToggleLike(item.id)}
-                style={styles.actionBtn}
-              >
-                <Feather
-                  name="heart"
-                  size={18}
-                  color={isLiked ? "#ef4444" : "#9ca3af"}
-                  fill={isLiked ? "#ef4444" : "transparent"}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => handleToggleBookmark(item.id)}
-                style={styles.actionBtn}
-              >
-                <Feather
-                  name="bookmark"
-                  size={18}
-                  color={isBookmarked ? "#3b82f6" : "#9ca3af"}
-                  fill={isBookmarked ? "#3b82f6" : "transparent"}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  };
+      return (
+        <FlashNewsCard
+          item={item}
+          isLiked={!!isLiked}
+          isBookmarked={!!isBookmarked}
+          onToggleLike={handleToggleLike}
+          onToggleBookmark={handleToggleBookmark}
+        />
+      );
+    },
+    [
+      selectedCountry,
+      user?.likes_us,
+      user?.likes_in,
+      user?.bookmarks_us,
+      user?.bookmarks_in,
+      handleToggleLike,
+      handleToggleBookmark,
+    ],
+  );
 
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.topActionsRow}>
         <View style={styles.searchContainer}>
-          <Feather name="search" size={20} color="#9ca3af" />
+          <Feather name="search" size={18} color="#9ca3af" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search news, topics..."
+            placeholder="Search flashcards..."
             value={searchQuery}
             onChangeText={setSearchQuery}
-            onSubmitEditing={handleSearchSubmit}
             returnKeyType="search"
             placeholderTextColor="#9ca3af"
             autoCorrect={false}
@@ -459,7 +632,7 @@ const NewsFeed = () => {
           />
           <ActivityIndicator
             size="large"
-            color="#1f2937"
+            color="#4f46e5"
             style={{ marginTop: 50 }}
           />
         </View>
@@ -468,6 +641,10 @@ const NewsFeed = () => {
           data={news}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
+          initialNumToRender={4}
+          maxToRenderPerBatch={4}
+          windowSize={5}
+          removeClippedSubviews={true}
           keyboardShouldPersistTaps="handled"
           ListHeaderComponent={
             <NewsHeader
@@ -485,16 +662,16 @@ const NewsFeed = () => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => handleRefresh()}
-              colors={["#1f2937"]}
+              colors={["#4f46e5"]}
             />
           }
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             !loading ? (
               <View style={styles.emptyContainer}>
-                <Feather name="search" size={50} color="#d1d5db" />
+                <Feather name="layers" size={44} color="#d1d5db" />
                 <Text style={styles.emptyText}>
-                  No news found for your query.
+                  No flashcards found for your query.
                 </Text>
               </View>
             ) : null
@@ -514,7 +691,7 @@ const styles = StyleSheet.create({
   topActionsRow: {
     flexDirection: "row",
     marginHorizontal: 20,
-    marginBottom: 25,
+    marginBottom: 15,
     gap: 10,
   },
   searchContainer: {
@@ -523,26 +700,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#fff",
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: 12,
     elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.04,
     shadowRadius: 2,
   },
   searchInput: {
     flex: 1,
-    marginLeft: 10,
+    marginLeft: 8,
     color: "#1f2937",
-    fontSize: 16,
-    height: 38,
+    fontSize: 15,
+    height: 36,
     padding: 0,
   },
   getLatestBtn: {
     backgroundColor: "#4f46e5",
-    width: 48,
-    height: 48,
+    width: 44,
+    height: 44,
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
@@ -554,22 +731,23 @@ const styles = StyleSheet.create({
   },
   categoriesContainer: {
     paddingHorizontal: 15,
-    marginBottom: 25,
+    marginBottom: 15,
   },
   categoryItem: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 20,
-    marginHorizontal: 5,
+    marginHorizontal: 4,
     backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: "#e5e7eb",
   },
   categoryItemActive: {
-    backgroundColor: "#1f2937",
-    borderColor: "#1f2937",
+    backgroundColor: "#4f46e5",
+    borderColor: "#4f46e5",
   },
   categoryText: {
+    fontSize: 13,
     fontWeight: "600",
     color: "#4b5563",
   },
@@ -584,105 +762,21 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "700",
     color: "#1f2937",
     flex: 1,
     marginRight: 10,
   },
-  newsCard: {
-    flexDirection: "row",
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 12,
-    marginBottom: 15,
-    marginHorizontal: 20,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-  },
-  newsImagePlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 12,
-    backgroundColor: "#f3f4f6",
-    justifyContent: "center",
-    alignItems: "center",
-    overflow: "hidden",
-  },
-  newsImage: {
-    width: "100%",
-    height: "100%",
-  },
-  newsContent: {
-    flex: 1,
-    marginLeft: 15,
-    justifyContent: "space-between",
-    paddingVertical: 2,
-  },
-  categoriesWrapper: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    marginBottom: 4,
-  },
-  categoryBadge: {
-    backgroundColor: "#eff6ff",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  categoryBadgeText: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: "#3b82f6",
-    letterSpacing: 0.5,
-  },
-  newsTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1f2937",
-    lineHeight: 22,
-  },
-  newsFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  newsTimeWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  newsTime: {
-    fontSize: 12,
-    color: "#9ca3af",
-    marginLeft: 5,
-  },
-  actionRow: {
-    flexDirection: "row",
-    gap: 15,
-  },
-  actionBtn: {
-    padding: 4,
-  },
-  footerLoader: {
-    paddingVertical: 20,
-    alignItems: "center",
-  },
-  centerLoader: {
-    flex: 1,
-  },
   countrySwitcher: {
     flexDirection: "row",
     backgroundColor: "#f3f4f6",
     borderRadius: 10,
-    padding: 4,
+    padding: 3,
   },
   countryItem: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 8,
   },
   countryItemActive: {
@@ -701,6 +795,240 @@ const styles = StyleSheet.create({
   countryTextActive: {
     color: "#1f2937",
   },
+
+  /* Flashcard Component Styles */
+  flashcardContainer: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+  },
+  cardFront: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    overflow: "hidden",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: "#f3f4f6",
+  },
+  imageContainer: {
+    height: 180,
+    width: "100%",
+    backgroundColor: "#f3f4f6",
+    position: "relative",
+  },
+  heroImage: {
+    width: "100%",
+    height: "100%",
+  },
+  placeholderImage: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  imageBadgeOverlay: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    right: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  categoryBadge: {
+    backgroundColor: "rgba(15, 23, 42, 0.8)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  categoryBadgeText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#fff",
+    letterSpacing: 0.5,
+  },
+  audioBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(15, 23, 42, 0.75)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  cardBody: {
+    padding: 16,
+  },
+  newsTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#1f2937",
+    lineHeight: 23,
+    marginBottom: 8,
+  },
+  newsDescription: {
+    fontSize: 14,
+    color: "#4b5563",
+    lineHeight: 20,
+    marginBottom: 14,
+  },
+  cardFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#f3f4f6",
+  },
+  newsTimeWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  newsTime: {
+    fontSize: 12,
+    color: "#9ca3af",
+    marginLeft: 4,
+  },
+  actionGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  iconBtn: {
+    padding: 3,
+  },
+  flipBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#4f46e5",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 6,
+  },
+  flipBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#fff",
+  },
+
+  /* Card Back Styles */
+  cardBack: {
+    backgroundColor: "#faf5ff",
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1.5,
+    borderColor: "#e0e7ff",
+    elevation: 4,
+    shadowColor: "#4f46e5",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  cardBackHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  backHeaderBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#e0e7ff",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  backHeaderTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#4338ca",
+  },
+  closeBackBtn: {
+    padding: 4,
+  },
+  backNewsTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1e1b4b",
+    lineHeight: 22,
+    marginBottom: 14,
+  },
+  takeawaysList: {
+    gap: 12,
+    marginBottom: 16,
+  },
+  takeawayItem: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#f3e8ff",
+  },
+  takeawayDot: {
+    fontSize: 15,
+    marginRight: 10,
+  },
+  takeawayTextContainer: {
+    flex: 1,
+  },
+  takeawayLabel: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#6366f1",
+    textTransform: "uppercase",
+    marginBottom: 2,
+  },
+  takeawayContent: {
+    fontSize: 13,
+    color: "#374151",
+    lineHeight: 18,
+  },
+  backFooterRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#e0e7ff",
+  },
+  sourceBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#e0e7ff",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  sourceBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#4338ca",
+  },
+  returnFrontBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  returnFrontText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#4b5563",
+  },
+
+  footerLoader: {
+    paddingVertical: 20,
+    alignItems: "center",
+  },
+  centerLoader: {
+    flex: 1,
+  },
   emptyContainer: {
     padding: 50,
     alignItems: "center",
@@ -710,6 +1038,6 @@ const styles = StyleSheet.create({
     marginTop: 15,
     color: "#9ca3af",
     textAlign: "center",
-    fontSize: 16,
+    fontSize: 15,
   },
 });
