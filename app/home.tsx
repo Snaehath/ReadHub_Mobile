@@ -2,15 +2,12 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   Image,
   Alert,
   Pressable,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../navigation/rootNavigator";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthStore } from "../store/useAuthStore";
 import { getCurrentUser } from "../services/userService";
@@ -18,12 +15,9 @@ import UserDrawer from "../components/UserDrawer";
 import NewsFeed from "../components/NewsFeed";
 
 const HomeScreen = () => {
-  // hooks
   const insets = useSafeAreaInsets();
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const router = useRouter();
 
-  // states
   const { user, token, setUser } = useAuthStore();
   const logout = useAuthStore((state) => state.logout);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -50,7 +44,7 @@ const HomeScreen = () => {
 
   // actions
   const handleLogout = () => {
-    setIsDrawerOpen(false); // close drawer
+    setIsDrawerOpen(false);
     Alert.alert("Logout", "Are you sure you want to logout?", [
       { text: "Cancel", style: "cancel" },
       {
@@ -58,42 +52,49 @@ const HomeScreen = () => {
         style: "destructive",
         onPress: () => {
           logout();
-          navigation.reset({
-            index: 0,
-            routes: [{ name: "Login" as any }],
-          });
+          router.replace("/login");
         },
       },
     ]);
   };
 
-  // render
+  const handleProfilePress = () => {
+    setIsDrawerOpen(false);
+    router.push("/profile");
+  };
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View className="flex-1 bg-gray-50" style={{ paddingTop: insets.top }}>
       {isDrawerOpen && (
         <Pressable
-          style={styles.staticBackdrop}
+          className="absolute inset-0 z-10"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
           onPress={() => setIsDrawerOpen(false)}
         />
       )}
 
       {/* Persistant Top Header */}
-      <View style={styles.header}>
+      <View className="flex-row justify-between items-center px-5 pt-2.5 pb-4 bg-gray-50">
         <View>
-          <Text style={styles.greeting}>Good Morning,</Text>
-          <Text style={styles.userName}>{user?.username || "Guest"}</Text>
+          <Text className="text-[15px] text-gray-500 font-normal">
+            Good Morning,
+          </Text>
+          <Text className="text-[22px] font-bold text-gray-800">
+            {user?.username || "Guest"}
+          </Text>
         </View>
         <TouchableOpacity
-          style={styles.profileButton}
+          className="w-[45px] h-[45px] rounded-full bg-white justify-center items-center"
+          style={{ elevation: 2 }}
           onPress={() => setIsDrawerOpen(true)}
         >
           {user?.avatar ? (
             <Image
               source={{ uri: user.avatar }}
-              style={styles.avatarImageSmall}
+              className="w-full h-full rounded-full"
             />
           ) : (
-            <Text style={styles.initialsText}>
+            <Text className="text-lg font-bold text-gray-800">
               {getInitials(user?.username || "GU")}
             </Text>
           )}
@@ -105,6 +106,7 @@ const HomeScreen = () => {
         onClose={() => setIsDrawerOpen(false)}
         user={user}
         onLogout={handleLogout}
+        onProfilePress={handleProfilePress}
         getInitials={getInitials}
       />
 
@@ -112,60 +114,5 @@ const HomeScreen = () => {
     </View>
   );
 };
-
-// styles
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f9fafb",
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 15,
-    backgroundColor: "#f9fafb",
-  },
-  greeting: {
-    fontSize: 15,
-    color: "#6b7280",
-    fontWeight: "400",
-  },
-  userName: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#1f2937",
-  },
-  profileButton: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
-    backgroundColor: "#fff",
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  avatarImageSmall: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 22.5,
-  },
-  initialsText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#1f2937",
-  },
-  staticBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    zIndex: 10,
-  },
-});
 
 export default HomeScreen;

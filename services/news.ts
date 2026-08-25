@@ -19,19 +19,15 @@ export async function getNewsPaginated(
     const baseUrl =
       process.env.EXPO_PUBLIC_API_BASE_URL ||
       "https://readhub-backend.onrender.com/api";
-    // Using environment variable with fallback to production URL
 
     const endpoint =
       country === "in"
         ? `${baseUrl}/news/newIn/pagination`
         : `${baseUrl}/news/new/pagination`;
 
-    const res = await fetch(`${endpoint}?${params.toString()}`, {
-      // cache: "no-store", // React Native fetch doesn't support 'cache: no-store' like fetch in Next.js Server Components
-    });
+    const res = await fetch(`${endpoint}?${params.toString()}`);
 
     if (!res.ok) {
-      // If not OK, try to extract error message, else use default message
       let errorMessage = `Failed to fetch news for ${country}`;
       try {
         const errorBody = await res.text();
@@ -43,25 +39,33 @@ export async function getNewsPaginated(
     }
 
     const data = await res.json();
+    const rawArticles = Array.isArray(data?.articles) ? data.articles : [];
 
-    const formattedNews: NewsArticle[] = data.articles.map((article: any) => ({
-      id: article._id.toString(),
-      title: article.title,
-      description: article.description,
-      content: article.content,
-      url: article.url,
-      urlToImage: article.urlToImage,
-      publishedAt: article.publishedAt,
-      dateOriginal: article.publishedAt,
-      source: article.source ?? { name: "Unknown" },
-      category: article.category ?? [],
+    const formattedNews: NewsArticle[] = rawArticles.map((article: any) => ({
+      id: (article._id || article.id || Math.random()).toString(),
+      title: article.title || "No Title",
+      description: article.description || "",
+      content: article.content || "",
+      url: article.url || "",
+      urlToImage: article.urlToImage || null,
+      publishedAt: article.publishedAt || new Date().toISOString(),
+      dateOriginal: article.publishedAt || new Date().toISOString(),
+      source:
+        typeof article.source === "object" && article.source !== null
+          ? article.source
+          : { name: article.source || "Unknown" },
+      category: Array.isArray(article.category)
+        ? article.category
+        : typeof article.category === "string"
+          ? [article.category]
+          : [],
     }));
 
     return {
       news: formattedNews,
-      totalPages: data.totalPages,
-      currentPage: data.currentPage,
-      totalArticles: data.totalArticles,
+      totalPages: data.totalPages ?? 0,
+      currentPage: data.currentPage ?? 1,
+      totalArticles: data.totalArticles ?? 0,
     };
   } catch (error) {
     console.error("Error fetching paginated news:", error);
@@ -126,25 +130,33 @@ export async function searchNews(
     }
 
     const data = await res.json();
+    const rawArticles = Array.isArray(data?.articles) ? data.articles : [];
 
-    const formattedNews: NewsArticle[] = data.articles.map((article: any) => ({
-      id: article._id.toString(),
-      title: article.title,
-      description: article.description,
-      content: article.content,
-      url: article.url,
-      urlToImage: article.urlToImage,
-      publishedAt: article.publishedAt,
-      dateOriginal: article.publishedAt,
-      source: article.source ?? { name: "Unknown" },
-      category: article.category ?? [],
+    const formattedNews: NewsArticle[] = rawArticles.map((article: any) => ({
+      id: (article._id || article.id || Math.random()).toString(),
+      title: article.title || "No Title",
+      description: article.description || "",
+      content: article.content || "",
+      url: article.url || "",
+      urlToImage: article.urlToImage || null,
+      publishedAt: article.publishedAt || new Date().toISOString(),
+      dateOriginal: article.publishedAt || new Date().toISOString(),
+      source:
+        typeof article.source === "object" && article.source !== null
+          ? article.source
+          : { name: article.source || "Unknown" },
+      category: Array.isArray(article.category)
+        ? article.category
+        : typeof article.category === "string"
+          ? [article.category]
+          : [],
     }));
 
     return {
       news: formattedNews,
-      totalPages: data.totalPages,
-      currentPage: data.currentPage,
-      totalArticles: data.totalArticles,
+      totalPages: data.totalPages ?? 0,
+      currentPage: data.currentPage ?? 1,
+      totalArticles: data.totalArticles ?? 0,
     };
   } catch (error) {
     console.error("Error searching news:", error);

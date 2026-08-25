@@ -2,7 +2,6 @@ import React from "react";
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   Image,
   Modal,
@@ -10,17 +9,13 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { User } from "../types/user";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../navigation/rootNavigator";
-
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 interface UserDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   user: User | null;
   onLogout: () => void;
+  onProfilePress: () => void;
   getInitials: (name: string) => string;
 }
 
@@ -29,15 +24,9 @@ const UserDrawer: React.FC<UserDrawerProps> = ({
   onClose,
   user,
   onLogout,
+  onProfilePress,
   getInitials,
 }) => {
-  const navigation = useNavigation<NavigationProp>();
-
-  const handleProfilePress = () => {
-    onClose();
-    navigation.navigate("Profile");
-  };
-
   return (
     <Modal
       visible={isOpen}
@@ -45,155 +34,74 @@ const UserDrawer: React.FC<UserDrawerProps> = ({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <Pressable
-        style={[styles.drawerBackdrop, { backgroundColor: "transparent" }]}
-        onPress={onClose}
-      />
-      <View style={styles.drawerContent}>
-        <View style={styles.drawerHandle} />
+      <Pressable className="flex-1" onPress={onClose} />
+      <View
+        className="bg-white rounded-t-3xl px-5 pt-3 absolute bottom-0 w-full"
+        style={{ elevation: 20 }}
+      >
+        <View className="w-10 h-1 bg-gray-200 rounded-sm self-center mb-5" />
 
-        <View style={styles.drawerHeader}>
-          <View style={styles.drawerAvatarContainer}>
+        <View className="flex-row items-center mb-5">
+          <View className="w-[60px] h-[60px] rounded-full bg-gray-100 justify-center items-center mr-3.5">
             {user?.avatar ? (
               <Image
                 source={{ uri: user.avatar }}
-                style={styles.drawerAvatar}
+                className="w-[60px] h-[60px] rounded-full"
               />
             ) : (
-              <Text style={styles.drawerInitials}>
+              <Text className="text-2xl font-bold text-gray-800">
                 {getInitials(user?.username || "GU")}
               </Text>
             )}
           </View>
-          <View style={styles.drawerUserInfo}>
-            <Text style={styles.drawerUsername}>
+          <View className="flex-1">
+            <Text className="text-lg font-bold text-gray-800">
               {user?.username || "Guest User"}
             </Text>
-            <Text style={styles.drawerEmail}>
+            <Text className="text-sm text-gray-500 mt-0.5">
               {user?.email || "guest@readhub.com"}
             </Text>
           </View>
         </View>
 
-        <View style={styles.drawerDivider} />
+        <View className="h-[1px] bg-gray-100 my-2.5" />
 
         <TouchableOpacity
-          style={styles.drawerItem}
-          onPress={handleProfilePress}
+          className="flex-row items-center py-3.5"
+          onPress={onProfilePress}
         >
           <Feather name="user" size={20} color="#4b5563" />
-          <Text style={styles.drawerItemText}>Profile Settings</Text>
+          <Text className="ml-3 text-base text-gray-800 font-medium">
+            Profile Settings
+          </Text>
         </TouchableOpacity>
-
-        <TouchableOpacity style={styles.drawerItem} onPress={onClose}>
-          <Feather name="bookmark" size={20} color="#4b5563" />
-          <Text style={styles.drawerItemText}>Saved Articles</Text>
-        </TouchableOpacity>
-
-        <View style={styles.drawerDivider} />
 
         <TouchableOpacity
-          style={[styles.drawerItem, styles.logoutItem]}
+          className="flex-row items-center py-3.5"
+          onPress={onClose}
+        >
+          <Feather name="bookmark" size={20} color="#4b5563" />
+          <Text className="ml-3 text-base text-gray-800 font-medium">
+            Saved Articles
+          </Text>
+        </TouchableOpacity>
+
+        <View className="h-[1px] bg-gray-100 my-2.5" />
+
+        <TouchableOpacity
+          className="flex-row items-center py-3.5 mt-1"
           onPress={onLogout}
         >
           <Feather name="log-out" size={20} color="#ef4444" />
-          <Text style={[styles.drawerItemText, styles.logoutItemText]}>
+          <Text className="ml-3 text-base text-red-500 font-medium">
             Logout
           </Text>
         </TouchableOpacity>
 
-        <View style={{ height: 40 }} />
+        <View className="h-10" />
       </View>
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  drawerBackdrop: {
-    flex: 1,
-  },
-  drawerContent: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    position: "absolute",
-    bottom: 0,
-    width: "100%",
-    elevation: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-  },
-  drawerHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: "#e5e7eb",
-    borderRadius: 2,
-    alignSelf: "center",
-    marginBottom: 20,
-  },
-  drawerHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  drawerAvatarContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#f3f4f6",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 15,
-  },
-  drawerAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-  },
-  drawerInitials: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#1f2937",
-  },
-  drawerUserInfo: {
-    flex: 1,
-  },
-  drawerUsername: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#1f2937",
-  },
-  drawerEmail: {
-    fontSize: 14,
-    color: "#6b7280",
-    marginTop: 2,
-  },
-  drawerDivider: {
-    height: 1,
-    backgroundColor: "#f3f4f6",
-    marginVertical: 10,
-  },
-  drawerItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 14,
-  },
-  drawerItemText: {
-    marginLeft: 12,
-    fontSize: 16,
-    color: "#1f2937",
-    fontWeight: "500",
-  },
-  logoutItem: {
-    marginTop: 5,
-  },
-  logoutItemText: {
-    color: "#ef4444",
-  },
-});
 
 export default UserDrawer;

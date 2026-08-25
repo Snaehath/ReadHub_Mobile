@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, memo } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
@@ -46,32 +45,35 @@ const NewsHeader = memo(function NewsHeader({
           data={newsCategories}
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriesContainer}
+          contentContainerClassName="px-4 mb-3.5"
           keyExtractor={(item) => item.id}
           keyboardShouldPersistTaps="handled"
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.categoryItem,
-                selectedCategory === item.id && styles.categoryItemActive,
-              ]}
-              onPress={() => handleCategoryPress(item.id)}
-            >
-              <Text
-                style={[
-                  styles.categoryText,
-                  selectedCategory === item.id && styles.categoryTextActive,
-                ]}
+          renderItem={({ item }) => {
+            const isActive = selectedCategory === item.id;
+            return (
+              <TouchableOpacity
+                className={`px-4 py-2 rounded-full mx-1 border ${
+                  isActive
+                    ? "bg-indigo-600 border-indigo-600"
+                    : "bg-white border-gray-200"
+                }`}
+                onPress={() => handleCategoryPress(item.id)}
               >
-                {item.name}
-              </Text>
-            </TouchableOpacity>
-          )}
+                <Text
+                  className={`text-[13px] font-semibold ${
+                    isActive ? "text-white" : "text-gray-600"
+                  }`}
+                >
+                  {item.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          }}
         />
       )}
 
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>
+      <View className="flex-row justify-between items-center px-5 mb-3.5">
+        <Text className="text-[17px] font-bold text-gray-800 flex-1 mr-2.5">
           {activeSearch
             ? `Results for "${activeSearch}"`
             : selectedCategory === "all"
@@ -80,35 +82,33 @@ const NewsHeader = memo(function NewsHeader({
                   newsCategories.find((c) => c.id === selectedCategory)?.name
                 }`}
         </Text>
-        <View style={styles.countrySwitcher}>
+        <View className="flex-row bg-gray-100 rounded-xl p-0.5">
           <TouchableOpacity
-            style={[
-              styles.countryItem,
-              selectedCountry === "us" && styles.countryItemActive,
-            ]}
+            className={`px-2.5 py-1.5 rounded-lg ${
+              selectedCountry === "us" ? "bg-white" : ""
+            }`}
+            style={selectedCountry === "us" ? { elevation: 2 } : undefined}
             onPress={() => handleCountryPress("us")}
           >
             <Text
-              style={[
-                styles.countryText,
-                selectedCountry === "us" && styles.countryTextActive,
-              ]}
+              className={`text-xs font-semibold ${
+                selectedCountry === "us" ? "text-gray-800" : "text-gray-500"
+              }`}
             >
               🇺🇸 US
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[
-              styles.countryItem,
-              selectedCountry === "in" && styles.countryItemActive,
-            ]}
+            className={`px-2.5 py-1.5 rounded-lg ${
+              selectedCountry === "in" ? "bg-white" : ""
+            }`}
+            style={selectedCountry === "in" ? { elevation: 2 } : undefined}
             onPress={() => handleCountryPress("in")}
           >
             <Text
-              style={[
-                styles.countryText,
-                selectedCountry === "in" && styles.countryTextActive,
-              ]}
+              className={`text-xs font-semibold ${
+                selectedCountry === "in" ? "text-gray-800" : "text-gray-500"
+              }`}
             >
               🇮🇳 IN
             </Text>
@@ -171,9 +171,15 @@ const FlashNewsCard = memo(function FlashNewsCard({
     const words = desc.split(" ");
     const chunkSize = Math.max(3, Math.ceil(words.length / 3));
 
-    const bullet1 = words.slice(0, chunkSize).join(" ") || "Major developments reported in recent hours.";
-    const bullet2 = words.slice(chunkSize, chunkSize * 2).join(" ") || "Key stakeholders and analysts react to current events.";
-    const bullet3 = words.slice(chunkSize * 2).join(" ") || "Further updates and market response expected soon.";
+    const bullet1 =
+      words.slice(0, chunkSize).join(" ") ||
+      "Major developments reported in recent hours.";
+    const bullet2 =
+      words.slice(chunkSize, chunkSize * 2).join(" ") ||
+      "Key stakeholders and analysts react to current events.";
+    const bullet3 =
+      words.slice(chunkSize * 2).join(" ") ||
+      "Further updates and market response expected soon.";
 
     return { bullet1, bullet2, bullet3 };
   };
@@ -181,39 +187,56 @@ const FlashNewsCard = memo(function FlashNewsCard({
   const takeaways = getTakeaways();
 
   return (
-    <View style={styles.flashcardContainer}>
+    <View className="mx-5 mb-5">
       {!isFlipped ? (
         /* Front Face of Flashcard */
-        <View style={styles.cardFront}>
+        <View
+          className="bg-white rounded-2xl overflow-hidden border border-gray-100"
+          style={{ elevation: 3 }}
+        >
           {/* Card Hero Image */}
-          <View style={styles.imageContainer}>
+          <View className="h-[180px] w-full bg-gray-100 relative">
             {item.urlToImage ? (
               <Image
                 source={{ uri: item.urlToImage }}
-                style={styles.heroImage}
+                className="w-full h-full"
                 resizeMode="cover"
               />
             ) : (
-              <View style={styles.placeholderImage}>
+              <View className="flex-1 justify-center items-center">
                 <Feather name="layers" size={36} color="#9ca3af" />
               </View>
             )}
 
             {/* Badges on Hero Image */}
-            <View style={styles.imageBadgeOverlay}>
-              {item.category && item.category.length > 0 ? (
-                <View style={styles.categoryBadge}>
-                  <Text style={styles.categoryBadgeText}>
-                    ⚡ {item.category[0].toUpperCase()}
+            <View className="absolute top-3 left-3 right-3 flex-row justify-between items-center">
+              {item.category &&
+              item.category.length > 0 &&
+              typeof item.category[0] === "string" ? (
+                <View
+                  className="px-2.5 py-1 rounded-lg"
+                  style={{ backgroundColor: "rgba(15, 23, 42, 0.8)" }}
+                >
+                  <Text className="text-[11px] font-extrabold text-white tracking-wider">
+                    {item.category[0].toUpperCase()}
                   </Text>
                 </View>
               ) : (
-                <View style={styles.categoryBadge}>
-                  <Text style={styles.categoryBadgeText}>⚡ FLASH</Text>
+                <View
+                  className="px-2.5 py-1 rounded-lg"
+                  style={{ backgroundColor: "rgba(15, 23, 42, 0.8)" }}
+                >
+                  <Text className="text-[11px] font-extrabold text-white tracking-wider">
+                    FLASH
+                  </Text>
                 </View>
               )}
 
-              <TouchableOpacity style={styles.audioBtn} onPress={toggleAudio}>
+              <TouchableOpacity
+                className="w-8 h-8 rounded-full justify-center items-center"
+                style={{ backgroundColor: "rgba(15, 23, 42, 0.75)" }}
+                onPress={toggleAudio}
+              >
                 <Feather
                   name={isPlayingAudio ? "pause" : "volume-2"}
                   size={16}
@@ -224,30 +247,33 @@ const FlashNewsCard = memo(function FlashNewsCard({
           </View>
 
           {/* Body Content */}
-          <View style={styles.cardBody}>
-            <Text style={styles.newsTitle} numberOfLines={3}>
+          <View className="p-4">
+            <Text
+              className="text-[17px] font-bold text-gray-800 mb-2"
+              numberOfLines={3}
+            >
               {item.title}
             </Text>
 
             {!!item.description && (
-              <Text style={styles.newsDescription} numberOfLines={2}>
+              <Text className="text-sm text-gray-600 mb-3.5" numberOfLines={2}>
                 {item.description}
               </Text>
             )}
 
             {/* Footer Bar */}
-            <View style={styles.cardFooter}>
-              <View style={styles.newsTimeWrapper}>
+            <View className="flex-row items-center justify-between pt-2.5 border-t border-gray-100">
+              <View className="flex-row items-center">
                 <Feather name="clock" size={13} color="#9ca3af" />
-                <Text style={styles.newsTime}>
+                <Text className="text-xs text-gray-400 ml-1">
                   {new Date(item.publishedAt).toLocaleDateString()}
                 </Text>
               </View>
 
-              <View style={styles.actionGroup}>
+              <View className="flex-row items-center gap-3">
                 <TouchableOpacity
                   onPress={() => onToggleLike(item.id)}
-                  style={styles.iconBtn}
+                  className="p-1"
                 >
                   <Feather
                     name="heart"
@@ -259,7 +285,7 @@ const FlashNewsCard = memo(function FlashNewsCard({
 
                 <TouchableOpacity
                   onPress={() => onToggleBookmark(item.id)}
-                  style={styles.iconBtn}
+                  className="p-1"
                 >
                   <Feather
                     name="bookmark"
@@ -269,17 +295,19 @@ const FlashNewsCard = memo(function FlashNewsCard({
                   />
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={handleShare} style={styles.iconBtn}>
+                <TouchableOpacity onPress={handleShare} className="p-1">
                   <Feather name="share-2" size={18} color="#6b7280" />
                 </TouchableOpacity>
 
                 {/* Flip Action Button */}
                 <TouchableOpacity
-                  style={styles.flipBtn}
+                  className="flex-row items-center bg-indigo-600 px-3 py-1.5 rounded-xl gap-1.5"
                   onPress={() => setIsFlipped(true)}
                 >
                   <Feather name="rotate-cw" size={14} color="#fff" />
-                  <Text style={styles.flipBtnText}>3 Takeaways</Text>
+                  <Text className="text-xs font-bold text-white">
+                    3 Takeaways
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -287,65 +315,88 @@ const FlashNewsCard = memo(function FlashNewsCard({
         </View>
       ) : (
         /* Back Face / Expanded Breakdown of Flashcard */
-        <View style={styles.cardBack}>
-          <View style={styles.cardBackHeader}>
-            <View style={styles.backHeaderBadge}>
-              <Feather name="zap" size={14} color="#4f46e5" />
-              <Text style={styles.backHeaderTitle}>Key Bullet Takeaways</Text>
+        <View
+          className="bg-purple-50 rounded-2xl p-4 border border-indigo-100"
+          style={{ elevation: 3 }}
+        >
+          <View className="flex-row justify-between items-center mb-2.5">
+            <View className="bg-indigo-100 px-2.5 py-1 rounded-lg">
+              <Text className="text-xs font-bold text-indigo-700">
+                Key Bullet Takeaways
+              </Text>
             </View>
             <TouchableOpacity
-              style={styles.closeBackBtn}
+              className="p-1"
               onPress={() => setIsFlipped(false)}
             >
               <Feather name="x" size={18} color="#6b7280" />
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.backNewsTitle} numberOfLines={2}>
+          <Text
+            className="text-base font-bold text-indigo-950 mb-3.5"
+            numberOfLines={2}
+          >
             {item.title}
           </Text>
 
-          <View style={styles.takeawaysList}>
-            <View style={styles.takeawayItem}>
-              <Text style={styles.takeawayDot}>📌</Text>
-              <View style={styles.takeawayTextContainer}>
-                <Text style={styles.takeawayLabel}>Why It Matters</Text>
-                <Text style={styles.takeawayContent}>{takeaways.bullet1}</Text>
+          <View className="gap-3 mb-4">
+            <View className="flex-row bg-white p-2.5 rounded-xl border border-purple-100">
+              <Text className="text-[15px] mr-2.5">📌</Text>
+              <View className="flex-1">
+                <Text className="text-[11px] font-extrabold text-indigo-500 uppercase mb-0.5">
+                  Why It Matters
+                </Text>
+                <Text className="text-[13px] text-gray-700">
+                  {takeaways.bullet1}
+                </Text>
               </View>
             </View>
 
-            <View style={styles.takeawayItem}>
-              <Text style={styles.takeawayDot}>💡</Text>
-              <View style={styles.takeawayTextContainer}>
-                <Text style={styles.takeawayLabel}>Key Context</Text>
-                <Text style={styles.takeawayContent}>{takeaways.bullet2}</Text>
+            <View className="flex-row bg-white p-2.5 rounded-xl border border-purple-100">
+              <Text className="text-[15px] mr-2.5">💡</Text>
+              <View className="flex-1">
+                <Text className="text-[11px] font-extrabold text-indigo-500 uppercase mb-0.5">
+                  Key Context
+                </Text>
+                <Text className="text-[13px] text-gray-700">
+                  {takeaways.bullet2}
+                </Text>
               </View>
             </View>
 
-            <View style={styles.takeawayItem}>
-              <Text style={styles.takeawayDot}>🔮</Text>
-              <View style={styles.takeawayTextContainer}>
-                <Text style={styles.takeawayLabel}>Outlook</Text>
-                <Text style={styles.takeawayContent}>{takeaways.bullet3}</Text>
+            <View className="flex-row bg-white p-2.5 rounded-xl border border-purple-100">
+              <Text className="text-[15px] mr-2.5">🔮</Text>
+              <View className="flex-1">
+                <Text className="text-[11px] font-extrabold text-indigo-500 uppercase mb-0.5">
+                  Outlook
+                </Text>
+                <Text className="text-[13px] text-gray-700">
+                  {takeaways.bullet3}
+                </Text>
               </View>
             </View>
           </View>
 
-          <View style={styles.backFooterRow}>
+          <View className="flex-row justify-between items-center pt-2 border-t border-indigo-100">
             <TouchableOpacity
-              style={styles.sourceBtn}
+              className="flex-row items-center gap-1.5 bg-indigo-100 px-3 py-1.5 rounded-xl"
               onPress={handleOpenSource}
             >
-              <Text style={styles.sourceBtnText}>Read Full Source</Text>
+              <Text className="text-xs font-bold text-indigo-700">
+                Read Full Source
+              </Text>
               <Feather name="external-link" size={14} color="#4f46e5" />
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.returnFrontBtn}
+              className="flex-row items-center gap-1.5 px-2 py-1"
               onPress={() => setIsFlipped(false)}
             >
               <Feather name="rotate-ccw" size={14} color="#4b5563" />
-              <Text style={styles.returnFrontText}>Card View</Text>
+              <Text className="text-xs font-semibold text-gray-600">
+                Card View
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -546,9 +597,9 @@ const NewsFeed = () => {
   };
 
   const renderFooter = () => {
-    if (!loadingMore) return <View style={{ height: 30 }} />;
+    if (!loadingMore) return <View className="h-7" />;
     return (
-      <View style={styles.footerLoader}>
+      <View className="py-5 items-center">
         <ActivityIndicator size="small" color="#4f46e5" />
       </View>
     );
@@ -587,12 +638,15 @@ const NewsFeed = () => {
   );
 
   return (
-    <View style={{ flex: 1 }}>
-      <View style={styles.topActionsRow}>
-        <View style={styles.searchContainer}>
+    <View className="flex-1">
+      <View className="flex-row mx-5 mb-3.5 gap-2.5">
+        <View
+          className="flex-1 flex-row items-center bg-white px-3 py-2 rounded-xl"
+          style={{ elevation: 2 }}
+        >
           <Feather name="search" size={18} color="#9ca3af" />
           <TextInput
-            style={styles.searchInput}
+            className="flex-1 ml-2 text-gray-800 text-[15px] h-9 p-0"
             placeholder="Search flashcards..."
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -609,7 +663,11 @@ const NewsFeed = () => {
         </View>
 
         <TouchableOpacity
-          style={[styles.getLatestBtn, updatingLatest && { opacity: 0.8 }]}
+          className="bg-indigo-600 w-11 h-11 rounded-xl justify-center items-center"
+          style={{
+            elevation: 3,
+            opacity: updatingLatest ? 0.8 : 1,
+          }}
           onPress={() => handleGetLatest(false)}
           disabled={updatingLatest}
         >
@@ -622,7 +680,7 @@ const NewsFeed = () => {
       </View>
 
       {loading && page === 1 ? (
-        <View style={styles.centerLoader}>
+        <View className="flex-1">
           <NewsHeader
             activeSearch={activeSearch}
             selectedCategory={selectedCategory}
@@ -665,12 +723,12 @@ const NewsFeed = () => {
               colors={["#4f46e5"]}
             />
           }
-          contentContainerStyle={styles.listContent}
+          contentContainerClassName="pb-5"
           ListEmptyComponent={
             !loading ? (
-              <View style={styles.emptyContainer}>
+              <View className="p-12 items-center justify-center">
                 <Feather name="layers" size={44} color="#d1d5db" />
-                <Text style={styles.emptyText}>
+                <Text className="mt-4 text-gray-400 text-center text-[15px]">
                   No flashcards found for your query.
                 </Text>
               </View>
@@ -683,361 +741,3 @@ const NewsFeed = () => {
 };
 
 export default NewsFeed;
-
-const styles = StyleSheet.create({
-  listContent: {
-    paddingBottom: 20,
-  },
-  topActionsRow: {
-    flexDirection: "row",
-    marginHorizontal: 20,
-    marginBottom: 15,
-    gap: 10,
-  },
-  searchContainer: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 8,
-    color: "#1f2937",
-    fontSize: 15,
-    height: 36,
-    padding: 0,
-  },
-  getLatestBtn: {
-    backgroundColor: "#4f46e5",
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 3,
-    shadowColor: "#4f46e5",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  categoriesContainer: {
-    paddingHorizontal: 15,
-    marginBottom: 15,
-  },
-  categoryItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginHorizontal: 4,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-  },
-  categoryItemActive: {
-    backgroundColor: "#4f46e5",
-    borderColor: "#4f46e5",
-  },
-  categoryText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#4b5563",
-  },
-  categoryTextActive: {
-    color: "#fff",
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    marginBottom: 15,
-  },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#1f2937",
-    flex: 1,
-    marginRight: 10,
-  },
-  countrySwitcher: {
-    flexDirection: "row",
-    backgroundColor: "#f3f4f6",
-    borderRadius: 10,
-    padding: 3,
-  },
-  countryItem: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-  },
-  countryItemActive: {
-    backgroundColor: "#fff",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
-  },
-  countryText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#6b7280",
-  },
-  countryTextActive: {
-    color: "#1f2937",
-  },
-
-  /* Flashcard Component Styles */
-  flashcardContainer: {
-    marginHorizontal: 20,
-    marginBottom: 20,
-  },
-  cardFront: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    overflow: "hidden",
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    borderWidth: 1,
-    borderColor: "#f3f4f6",
-  },
-  imageContainer: {
-    height: 180,
-    width: "100%",
-    backgroundColor: "#f3f4f6",
-    position: "relative",
-  },
-  heroImage: {
-    width: "100%",
-    height: "100%",
-  },
-  placeholderImage: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  imageBadgeOverlay: {
-    position: "absolute",
-    top: 12,
-    left: 12,
-    right: 12,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  categoryBadge: {
-    backgroundColor: "rgba(15, 23, 42, 0.8)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  categoryBadgeText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#fff",
-    letterSpacing: 0.5,
-  },
-  audioBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(15, 23, 42, 0.75)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  cardBody: {
-    padding: 16,
-  },
-  newsTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#1f2937",
-    lineHeight: 23,
-    marginBottom: 8,
-  },
-  newsDescription: {
-    fontSize: 14,
-    color: "#4b5563",
-    lineHeight: 20,
-    marginBottom: 14,
-  },
-  cardFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#f3f4f6",
-  },
-  newsTimeWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  newsTime: {
-    fontSize: 12,
-    color: "#9ca3af",
-    marginLeft: 4,
-  },
-  actionGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  iconBtn: {
-    padding: 3,
-  },
-  flipBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#4f46e5",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    gap: 6,
-  },
-  flipBtnText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#fff",
-  },
-
-  /* Card Back Styles */
-  cardBack: {
-    backgroundColor: "#faf5ff",
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1.5,
-    borderColor: "#e0e7ff",
-    elevation: 4,
-    shadowColor: "#4f46e5",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-  },
-  cardBackHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  backHeaderBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "#e0e7ff",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  backHeaderTitle: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#4338ca",
-  },
-  closeBackBtn: {
-    padding: 4,
-  },
-  backNewsTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#1e1b4b",
-    lineHeight: 22,
-    marginBottom: 14,
-  },
-  takeawaysList: {
-    gap: 12,
-    marginBottom: 16,
-  },
-  takeawayItem: {
-    flexDirection: "row",
-    backgroundColor: "#fff",
-    padding: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#f3e8ff",
-  },
-  takeawayDot: {
-    fontSize: 15,
-    marginRight: 10,
-  },
-  takeawayTextContainer: {
-    flex: 1,
-  },
-  takeawayLabel: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#6366f1",
-    textTransform: "uppercase",
-    marginBottom: 2,
-  },
-  takeawayContent: {
-    fontSize: 13,
-    color: "#374151",
-    lineHeight: 18,
-  },
-  backFooterRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: "#e0e7ff",
-  },
-  sourceBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "#e0e7ff",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
-  },
-  sourceBtnText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#4338ca",
-  },
-  returnFrontBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  returnFrontText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#4b5563",
-  },
-
-  footerLoader: {
-    paddingVertical: 20,
-    alignItems: "center",
-  },
-  centerLoader: {
-    flex: 1,
-  },
-  emptyContainer: {
-    padding: 50,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyText: {
-    marginTop: 15,
-    color: "#9ca3af",
-    textAlign: "center",
-    fontSize: 15,
-  },
-});

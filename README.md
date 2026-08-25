@@ -9,32 +9,30 @@ ReadHub Mobile is designed to provide a premium news reading experience. It inte
 ## 🛠 Tech Stack
 
 - **Framework**: [Expo](https://expo.dev/) (React Native)
-- **Navigation**: [React Navigation](https://reactnavigation.org/) (Native Stack)
+- **Navigation**: [Expo Router](https://docs.expo.dev/router/introduction/) (File-based routing)
 - **Icons**: Expo Vector Icons (Feather)
 - **Language**: TypeScript
 - **State Management**: [Zustand](https://github.com/pmndrs/zustand)
-- **Styling**: Native StyleSheet with a focus on premium aesthetics.
+- **Styling**: [NativeWind](https://www.nativewind.dev/) (Tailwind CSS for React Native)
 
 ## 📂 Project Structure
 
 ```text
 readhub-app/
+├── app/                # File-based routes & layouts
+│   ├── _layout.tsx     # Root Stack Layout
+│   ├── index.tsx       # Entry redirect route
+│   ├── home.tsx        # News & Feed home screen (/home)
+│   ├── login.tsx       # User login screen (/login)
+│   ├── register.tsx    # User registration screen (/register)
+│   └── profile.tsx     # User profile screen (/profile)
 ├── assets/             # Images, fonts, and splash screens
 ├── constants/          # Application constants
 │   ├── categories.ts   # News categories definition
 │   └── user.ts         # User-related constants (e.g., Avatar options)
 ├── components/         # Reusable UI components
-│   ├── UserDrawer.tsx  # Shadcn-inspired bottom drawer
-│   ├── NewsFeed.tsx    # News timeline and filters
-│   └── StoriesFeed.tsx # Endless list of AI-generated stories
-├── navigation/         # Navigation configuration
-│   └── rootNavigator.tsx# Main Stack Navigator
-├── screens/            # Application screens
-│   ├── home.tsx        # News & Stories tabed home screen
-│   ├── login.tsx       # User login with keyboard handling
-│   ├── register.tsx    # User registration with avatar picker
-│   ├── storyDetail.tsx # Detailed viewing of AI stories
-│   └── profile.tsx     # User profile viewing and editing
+│   ├── UserDrawer.tsx  # Bottom drawer
+│   └── NewsFeed.tsx    # Flashcards feed and filters
 ├── services/           # API service layer
 │   ├── news.ts         # Paginated news fetching logic
 │   ├── userService.ts  # Login and Registration API calls

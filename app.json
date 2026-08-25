@@ -2,6 +2,7 @@
   "expo": {
     "name": "ReadHub",
     "slug": "readhub-app",
+    "scheme": "readhub-app",
     "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -26,12 +27,16 @@
       "versionCode": 2
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
     },
     "extra": {
       "eas": {
         "projectId": "8e93ad60-7748-4d1f-a33f-5d3d5296706f"
       }
-    }
+    },
+    "plugins": [
+      "expo-router"
+    ]
   }
 }
