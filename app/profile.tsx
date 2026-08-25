@@ -24,6 +24,13 @@ const ProfileScreen = () => {
   const router = useRouter();
   const { user, token, setUser } = useAuthStore();
 
+  // Guard: guests cannot access profile
+  useEffect(() => {
+    if (!token) {
+      router.replace("/home");
+    }
+  }, [token, router]);
+
   const [isEditing, setIsEditing] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [newAvatar, setNewAvatar] = useState("");

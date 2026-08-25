@@ -15,10 +15,12 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Register } from "../services/userService";
+import { useAuthStore } from "../store/useAuthStore";
 import { avatarOptions } from "../constants/user";
 
 const RegisterScreen = () => {
   const router = useRouter();
+  const setGuest = useAuthStore((state) => state.setGuest);
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -140,6 +142,16 @@ const RegisterScreen = () => {
               <Text className="font-semibold text-gray-900">Login</Text>
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity
+            className="items-center mt-4"
+            onPress={() => {
+              setGuest(true);
+              router.replace("/home");
+            }}
+          >
+            <Text className="text-gray-400 text-sm">Continue as Guest</Text>
+          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
