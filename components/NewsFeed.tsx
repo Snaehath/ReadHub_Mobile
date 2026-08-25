@@ -11,7 +11,10 @@ import {
   TextInput,
   Linking,
   Share,
+  Modal,
+  Pressable,
 } from "react-native";
+import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import {
   getNewsPaginated,
@@ -406,9 +409,11 @@ const FlashNewsCard = memo(function FlashNewsCard({
 });
 
 const NewsFeed = () => {
+  const router = useRouter();
   // states
   const { user, token, updateUser } = useAuthStore();
   const [news, setNews] = useState<NewsArticle[]>([]);
+  const [showAuthNudge, setShowAuthNudge] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -434,7 +439,10 @@ const NewsFeed = () => {
   // Interaction handlers
   const handleToggleLike = useCallback(
     async (newsId: string) => {
-      if (!token) return;
+      if (!token) {
+        setShowAuthNudge(true);
+        return;
+      }
       try {
         const updatedLikes = await toggleLike(
           newsId,
@@ -454,7 +462,10 @@ const NewsFeed = () => {
 
   const handleToggleBookmark = useCallback(
     async (newsId: string) => {
-      if (!token) return;
+      if (!token) {
+        setShowAuthNudge(true);
+        return;
+      }
       try {
         const updatedBookmarks = await toggleBookmark(
           newsId,
@@ -639,6 +650,53 @@ const NewsFeed = () => {
 
   return (
     <View className="flex-1">
+      {/* Guest Auth Nudge Modal */}
+      <Modal
+        visible={showAuthNudge}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowAuthNudge(false)}
+      >
+        <Pressable
+          className="flex-1"
+          style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+          onPress={() => setShowAuthNudge(false)}
+        />
+        <View
+          className="bg-white rounded-t-3xl px-6 pt-6 pb-10"
+          style={{ elevation: 20 }}
+        >
+          <View className="w-10 h-1 bg-gray-200 rounded-full self-center mb-6" />
+          <View className="w-14 h-14 rounded-2xl bg-indigo-100 justify-center items-center self-center mb-4">
+            <Feather name="user" size={28} color="#4f46e5" />
+          </View>
+          <Text className="text-[20px] font-bold text-gray-900 text-center mb-2">
+            Sign in to interact
+          </Text>
+          <Text className="text-sm text-gray-500 text-center mb-6 leading-5">
+            Like and bookmark articles to build your personalised reading list. Takes 10 seconds.
+          </Text>
+          <TouchableOpacity
+            className="bg-indigo-600 py-3.5 rounded-2xl items-center mb-3"
+            onPress={() => {
+              setShowAuthNudge(false);
+              router.push("/login");
+            }}
+          >
+            <Text className="text-white font-bold text-[15px]">Sign In</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="py-3 items-center"
+            onPress={() => {
+              setShowAuthNudge(false);
+              router.push("/register");
+            }}
+          >
+            <Text className="text-indigo-600 font-semibold text-[14px]">Create an account</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
       <View className="flex-row mx-5 mb-3.5 gap-2.5">
         <View
           className="flex-1 flex-row items-center bg-white px-3 py-2 rounded-xl"

@@ -19,6 +19,7 @@ const LoginScreen = () => {
   const router = useRouter();
   const setUser = useAuthStore((state) => state.setUser);
   const setToken = useAuthStore((state) => state.setToken);
+  const setGuest = useAuthStore((state) => state.setGuest);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -105,6 +106,16 @@ const LoginScreen = () => {
               <Text className="font-semibold text-gray-900">Register</Text>
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity
+            className="items-center mt-4"
+            onPress={() => {
+              setGuest(true);
+              router.replace("/home");
+            }}
+          >
+            <Text className="text-gray-400 text-sm">Continue as Guest</Text>
+          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
